@@ -56,7 +56,7 @@ class LinkedInScraper(BaseScraper):
         }
         return f"{self.jobs_search_api}?{urllib.parse.urlencode(params)}"
 
-    def find_job_elements(self) -> List[Any]:
+    def find_job_elements(self):
         """
         Fetch and return job elements from current page - required by BaseScraper
         
@@ -90,7 +90,7 @@ class LinkedInScraper(BaseScraper):
             self.logger.info(f"Found {len(job_elements)} job elements on current page")
             
             # Update pagination state for next call
-            self.current_start += len(job_elements)
+            self.current_start += 1
             
             return job_elements
             
@@ -200,7 +200,7 @@ class LinkedInScraper(BaseScraper):
             self.logger.error(f"Error parsing job description from {job_url}: {e}")
             return None
         
-    def scraped_jobs(self, search_term, max_jobs=50):
+    def scrape_jobs(self, search_term, max_jobs=50):
         """
         Override the base scraping workflow to handle LinkedIn's pagination properly.
         

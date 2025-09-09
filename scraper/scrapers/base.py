@@ -281,6 +281,7 @@ class BaseScraper(ABC):
 
             if created:
                 self.logger.info(f"Saved new job: {job_data['title']}")
+                raw_job.processing_status = 'processed'
             else:
                 self.logger.info(f"Job already exists: {job_data['title']}")
 
@@ -303,7 +304,7 @@ class BaseScraper(ABC):
         pass
     
     @abstractmethod
-    def fetch_single_page(self, *args):
+    def find_job_elements(self) -> List[Any]:
         """Fetch single page of data"""
         pass
 
