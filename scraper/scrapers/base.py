@@ -79,7 +79,7 @@ class BaseScraper(ABC):
             finally:
                 self.driver = None
 
-    def retry_with_backoff(self, func, max_retries=3, base_delay=2) -> Optional[Exception]:
+    def retry_with_backoff(self, func, max_retries=3, base_delay=2):
         """
         Execute a function with exponential backoff retry logic.
         
@@ -109,8 +109,6 @@ class BaseScraper(ABC):
                 delay = base_delay * (2 ** attempt)
                 self.logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay}s...")
                 time.sleep(delay)
-
-        raise last_exception
     
     def safe_find_element(self, locator, timeout=10) -> Optional[WebElement]:
         """
@@ -295,22 +293,22 @@ class BaseScraper(ABC):
     # Abtstract methods
 
     @abstractmethod
-    def get_site_name(self):
+    def get_site_name(self) -> str:
         """Return the name of the job site (e.g., 'linkedin', 'indeed')"""
         pass
 
     @abstractmethod
-    def build_search_url(self, search_term):
+    def build_search_url(self, search_term) -> Optional[str]:
         """Build the search URL for the given search term"""
         pass
     
     @abstractmethod
-    def find_job_elements(self):
-        """Find and return all job listing elements on the current page"""
+    def fetch_single_page(self, *args):
+        """Fetch single page of data"""
         pass
 
     @abstractmethod 
-    def extract_job_data(self, job_element) -> Dict[str, Any]:
+    def extract_job_data(self, job_element) -> Optional[Dict[str, Any]]:
         """
         Extract job data from a job element.
         
