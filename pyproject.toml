@@ -12,5 +12,6 @@ dependencies = [
     "pandas>=2.3.2",
     "selenium>=4.35.0",
     "selenium-stealth>=1.0.6",
+    "undetected-chromedriver>=3.5.5",
     "webdriver-manager>=4.0.2",
 ]

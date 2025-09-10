@@ -160,19 +160,40 @@ class IndeedScraper(BaseScraper):
     
     def get_full_job_description(self, job_element) -> Optional[str]:
         """
-        Fetch full job description from Indeed's side panel.
+        Debug version to see what's happening
         """
         try:
+            print(f"About to click job element...")
             job_element.click()
+            print(f"Clicked! Waiting for description...")
             
-            description = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.ID, "jobDescriptionText"))
-            )
+            time.sleep(3)
+            
 
-            return description.text
+            possible_selectors = [
+                (By.ID, "jobDescriptionText"),
+                (By.CLASS_NAME, "jobsearch-JobComponent-description"),
+                (By.CSS_SELECTOR, "[data-testid='jobDescription']"),
+                (By.CSS_SELECTOR, ".jobsearch-jobDescriptionText")
+            ]
+            
+            for selector_type, selector_value in possible_selectors:
+                try:
+                    description = WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((selector_type, selector_value))
+                    )
+                    print(f"Found description with selector: {selector_type} = {selector_value}")
+                    return description.text
+                except TimeoutException:
+                    print(f"Selector failed: {selector_type} = {selector_value}")
+                    continue
+            
+            print("None of the selectors worked!")
+            return "No description available"
+            
         except Exception as e:
-            self.logger.warning("Could not extract full job description")
-            description = 'No description available'
+            print(f"Error in get_full_job_description: {e}")
+            return "No description available"
     
     def scrape_jobs(self, search_term: str, max_jobs: int = 100, location: str = "United States"):
         """
