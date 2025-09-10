@@ -52,7 +52,7 @@ class JobDuplicateDetector:
                 if job_b.get('id') in processed_jobs:
                     continue
 
-                similarity_score = self.calcualte_similarity(job_a, job_b)
+                similarity_score = self.calculate_similarity(job_a, job_b)
 
                 if similarity_score >= self.similarity_threshold:
                     current_group.append(job_b.get('id'))
@@ -176,3 +176,36 @@ class JobDuplicateDetector:
         # "San Francisco, CA" vs "SF, CA" should match
         tokens_a = self._tokenize_text(location_a)
         tokens_b = self._tokenize_text(location_b)
+
+        return self._jaccard_similarity(tokens_a, tokens_b)
+    
+    def _tokenize_text(self, text: str) -> Set[str]:
+        if not text:
+            return set()
+        
+        import re
+        tokens = re.findall(r'\w+', text.lower())
+        return set(tokens)
+    
+    def _jaccard_similarity(self, tokens_a: Set[str], tokens_b: Set[str]) -> float:
+        """
+        Calculate Jaccard similarity between two token sets.
+        
+        Jaccard similarity = |intersection| / |union|
+        
+        Args:
+            tokens_a: First set of tokens
+            tokens_b: Second set of tokens
+        Returns:
+            Similarity score between 0.0 and 1.0
+        """
+        if not tokens_a and not tokens_b:
+            return 1.0  # Both empty = identical
+        
+        if not tokens_a or not tokens_b:
+            return 0.0  # One empty, one not = completely different
+        
+        intersection = tokens_a.intersection(tokens_b)
+        union = tokens_a.union(tokens_b)
+        
+        return len(intersection) / len(union)
