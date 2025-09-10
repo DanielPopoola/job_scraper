@@ -2,7 +2,7 @@ import logging
 from typing import Dict, List, Optional, Set, Any
 from collections import defaultdict
 
-from normalizer import JobDataNormalizer
+from .normalizer import JobDataNormalizer
 
 class JobDuplicateDetector:
     """
@@ -22,51 +22,38 @@ class JobDuplicateDetector:
             'location_similarity': 0.3,   # Moderately important
         }
 
-    def find_duplicates(self, jobs: List[Dict[str, Any]]) -> List[List[int]]:
+    def setup_logging(self):
+        """Configure logging for this class"""
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG)
+    
+    def find_best_match(self, new_job: Dict[str, Any], potential_duplicates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """
-        Find groups of duplicate jobs from a list of normalized job data.
+        Find the best duplicate for a new job from a list of potential duplicates.
         Args:
-            jobs: List of normalized job dictionaries with 'id' field
+            new_job: Normalized data for the new job
+            potential_duplicates: List of existing jobs from the database
         Returns:
-            List of lists, where each inner list contains IDs of duplicate jobs
-            Example: [[1, 5, 12], [3, 8], [15, 20]] means jobs 1,5,12 are duplicates
+            The best matching job dictionary or None if no good match is found
         """
-        if len(jobs) < 2:
-            return []
+        best_match = None
+        highest_similarity = 0
+
+        for job in potential_duplicates:
+            similarity = self.calculate_similarity(new_job, job)
+            if similarity > highest_similarity:
+                highest_similarity = similarity
+                best_match = job
+
+        if highest_similarity >= self.similarity_threshold:
+            return best_match
         
-        self.logger.info(f"Detecting duplicates among {len(jobs)} jobs...")
-
-        # Build similarity matrix
-        duplicate_groups = []
-        processed_jobs = set()
-
-        for i, job_a in enumerate(jobs):
-            if job_a.get('id') in processed_jobs:
-                continue
-
-            current_group = [job_a.get('id')]
-            processed_jobs.add(job_a.get('id'))
-
-            # Compare with remaining jobs
-            for j, job_b in enumerate(jobs[i+1:], i+1):
-                if job_b.get('id') in processed_jobs:
-                    continue
-
-                similarity_score = self.calculate_similarity(job_a, job_b)
-
-                if similarity_score >= self.similarity_threshold:
-                    current_group.append(job_b.get('id'))
-                    processed_jobs.add(job_b.get('id'))
-
-                    self.logger.debug(f"Found duplicate: Job {job_a.get('id')} ~ Job {job_b.get('id')} "
-                                    f"(similarity: {similarity_score:.3f})")
-                
-            # Only add groups with actual duplicates
-            if len(current_group) > 1:
-                duplicate_groups.append(current_group)
-
-        self.logger.info(f"Found {len(duplicate_groups)} duplicate groups")
-        return duplicate_groups
+        return None
     
     def calculate_similarity(self, job_a: Dict[str, Any], job_b: Dict[str, Any]) -> float:
         """
@@ -99,7 +86,7 @@ class JobDuplicateDetector:
                 weight = self.match_weights.get(criterion, 0)
                 total_score += score * weight
 
-            self.logger.debug(f"Similarity breakdown: {scores} --> {total_score:.3f}")
+            #self.logger.debug(f"Similarity breakdown: {scores} --> {total_score:.3f}")
             return total_score
         
         except Exception as e:

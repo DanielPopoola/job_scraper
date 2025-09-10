@@ -90,6 +90,16 @@ class JobDataNormalizer:
             'distributed', 'anywhere', 'virtual'
         }
 
+    def setup_logging(self):
+        """Configure logging for this class"""
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG)
+
     def normalize_job_data(self, cleaned_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Normalize cleaned job data to standard formats.
@@ -105,7 +115,11 @@ class JobDataNormalizer:
             normalized_data['title'] = self.normalize_title(cleaned_data.get('title', ''))
             normalized_data['company'] = self.normalize_company(cleaned_data.get('company', ''))
             normalized_data['location'] = self.normalize_location(cleaned_data.get('location', ''))
-            
+
+            # Keep original URL and metadata
+            normalized_data['source_url'] = cleaned_data.get('source_url', '')
+            normalized_data['source_site'] = cleaned_data.get('source_site', '')
+
             # Extract additional normalized fields
             normalized_data['is_remote'] = self.detect_remote_work(
                 normalized_data['title'], normalized_data['location']

@@ -28,6 +28,16 @@ class JobDataCleaner:
             'location': ['unknown location', 'n/a', 'na', ''],
         }
 
+    def setup_logging(self):
+        """Configure logging for this class"""
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG)
+
     def clean_job_data(self, raw_job_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Clean raw job data from scrapers.
@@ -41,10 +51,10 @@ class JobDataCleaner:
         try:
             cleaned_data = {}
 
-            cleaned_data['title'] = self.clean_title(raw_job_data.get('title', ''))
-            cleaned_data['company'] = self.clean_company(raw_job_data.get('company', ''))
-            cleaned_data['location'] = self.clean_location(raw_job_data.get('location', ''))
-            cleaned_data['description'] = self.clean_description(raw_job_data.get('description', ''))
+            cleaned_data['title'] = self.clean_title(raw_job_data['raw_title'])
+            cleaned_data['company'] = self.clean_company(raw_job_data['raw_company'])
+            cleaned_data['location'] = self.clean_location(raw_job_data['raw_location'])
+            cleaned_data['description'] = self.clean_description(raw_job_data['raw_description'])
 
             # Keep original URL and metadata
             cleaned_data['source_url'] = raw_job_data.get('source_url', '')
