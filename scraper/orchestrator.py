@@ -230,6 +230,33 @@ class JobScrapingOrchestrator:
             for error in results['errors']:
                 self.logger.info(f"  {error['task']}: {error['error']}")
 
+    def create_daily_job_tasks(self, search_terms: List[str]) -> List[ScrapingTask]:
+        """
+        Create a standard set of daily scraping tasks.
+        
+        This is a convenience method for regular operations.
+        """
+        tasks = []
+        
+        for priority, search_term in enumerate(search_terms, 1):
+            # LinkedIn tasks (usually more reliable, so lower max_jobs)
+            tasks.append(ScrapingTask(
+                site='linkedin',
+                search_term=search_term,
+                max_jobs=40,
+                priority=priority
+            ))
+            
+            # Indeed tasks (can handle more volume)
+            tasks.append(ScrapingTask(
+                site='indeed', 
+                search_term=search_term,
+                max_jobs=15,
+                priority=priority
+            ))
+        
+        return tasks
+
     def get_system_health(self) -> Dict[str, Any]:
         """
         Check system health - recent scraping success rates, processing backlogs, etc.
@@ -269,3 +296,71 @@ class JobScrapingOrchestrator:
             'site_health': site_health,
             'recent_sessions_count': recent_sessions.count()
         }
+
+
+class OrchestrationExamples:
+    """Example orchestration patterns for different use cases"""
+    
+    @staticmethod
+    def daily_job_scraping():
+        """Standard daily job scraping routine"""
+        config = OrchestrationConfig(
+            delay_between_sites=60,  # 1 minute between sites
+            delay_between_searches=30,  # 30 seconds between searches
+            process_immediately=False,  # Batch process at end
+            max_jobs_per_site=100
+        )
+        
+        orchestrator = JobScrapingOrchestrator(config)
+        
+        # Define what we want to scrape daily
+        search_terms = [
+            "python developer",
+            "data scientist", 
+            "backend engineer",
+            "machine learning engineer"
+        ]
+        
+        tasks = orchestrator.create_daily_job_tasks(search_terms)
+        
+        return orchestrator.run_scraping_session(tasks)
+    
+    @staticmethod
+    def urgent_market_research():
+        """Quick scraping for immediate market research"""
+        config = OrchestrationConfig(
+            delay_between_sites=10,  # Faster for urgent needs
+            delay_between_searches=5,
+            process_immediately=True,  # Process right away
+            max_jobs_per_site=30  # Smaller batches
+        )
+        
+        orchestrator = JobScrapingOrchestrator(config)
+        
+        # Targeted research tasks
+        tasks = [
+            ScrapingTask("linkedin", "system administrator", max_jobs=20, priority=1),
+            ScrapingTask("indeed", "virtual assistant", max_jobs=30, priority=1),
+            ScrapingTask("linkedin", "financial officer", max_jobs=15, priority=2),
+        ]
+        
+        return orchestrator.run_scraping_session(tasks)
+    
+    @staticmethod
+    def conservative_scraping():
+        """Very conservative scraping to avoid any rate limiting"""
+        config = OrchestrationConfig(
+            delay_between_sites=120,  # 2 minutes between sites
+            delay_between_searches=60,  # 1 minute between searches  
+            max_retries=1,  # Don't retry failures
+            max_jobs_per_site=25  # Small batches
+        )
+        
+        orchestrator = JobScrapingOrchestrator(config)
+        
+        tasks = [
+            ScrapingTask("linkedin", "logistics manager", max_jobs=25, priority=1),
+            ScrapingTask("indeed", "seo expert  ", max_jobs=25, priority=2),
+        ]
+        
+        return orchestrator.run_scraping_session(tasks)
