@@ -49,7 +49,7 @@ class JobScrapingOrchestrator:
     4. Coordinates the data pipeline
     5. Provides monitoring/reporting
     """
-    def __init__(self, config: Optional[OrchestrationConfig]):
+    def __init__(self, config: OrchestrationConfig = None):
         self.config = config or OrchestrationConfig()
         self.logger = logging.getLogger(self.__class__.__name__)
         
