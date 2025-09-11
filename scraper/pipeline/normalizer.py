@@ -117,8 +117,8 @@ class JobDataNormalizer:
             normalized_data['location'] = self.normalize_location(cleaned_data.get('location', ''))
 
             # Keep original URL and metadata
-            normalized_data['source_url'] = cleaned_data.get('source_url', '')
-            normalized_data['source_site'] = cleaned_data.get('source_site', '')
+            normalized_data['url'] = cleaned_data.get('source_url', '')
+            normalized_data['site'] = cleaned_data.get('source_site', '')
 
             # Extract additional normalized fields
             normalized_data['is_remote'] = self.detect_remote_work(
