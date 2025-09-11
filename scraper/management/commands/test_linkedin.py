@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand, CommandParser
-from scraper.scrapers.linkedin import LinkedInScraper
+
 from scraper.models import RawJobPosting, ScrapingSession
+from scraper.scrapers.linkedin import LinkedInScraper
 
 
 class Command(BaseCommand):
@@ -16,7 +17,7 @@ class Command(BaseCommand):
         search_term = options['search']
         max_jobs = options['count']
 
-        self.stdout.write(f"Testing LinkedIn scraper...")
+        self.stdout.write("Testing LinkedIn scraper...")
         self.stdout.write(f"Search term: '{search_term}'")
         self.stdout.write(f"Max jobs: {max_jobs}")
         self.stdout.write("="*50)
@@ -39,7 +40,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Description length: {len(job['description'])} chars")
 
             # Show database state
-            self.stdout.write(f"\n" + "="*50)
+            self.stdout.write("\n" + "="*50)
             self.stdout.write("Database Statistics:")
             self.stdout.write(f"Total raw job postings: {RawJobPosting.objects.count()}")
             self.stdout.write(f"LinkedIn jobs: {RawJobPosting.objects.filter(source_site='linkedin').count()}")
@@ -49,7 +50,7 @@ class Command(BaseCommand):
                 source_site='linkedin'
             ).order_by('-started_at')[:3]
             
-            self.stdout.write(f"\nRecent LinkedIn scraping sessions:")
+            self.stdout.write("\nRecent LinkedIn scraping sessions:")
             for session in recent_sessions:
                 self.stdout.write(f"  {session.started_at.strftime('%Y-%m-%d %H:%M')} - "
                                 f"{session.status} - "
@@ -67,5 +68,5 @@ class Command(BaseCommand):
                 session = error_sessions[0]
                 self.stdout.write(f"Last error: {session.error_message}")
         
-        self.stdout.write(f"\nTest completed!")
-        self.stdout.write(f"Next: python manage.py test_linkedin --search 'data scientist' --count 10")
+        self.stdout.write("\nTest completed!")
+        self.stdout.write("Next: python manage.py test_linkedin --search 'data scientist' --count 10")

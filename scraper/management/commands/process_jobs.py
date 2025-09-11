@@ -1,7 +1,8 @@
 import logging
-from django.core.management.base import BaseCommand
-from scraper.pipeline.processor import JobProcessingPipeline
 
+from django.core.management.base import BaseCommand
+
+from scraper.pipeline.processor import JobProcessingPipeline
 
 
 class Command(BaseCommand):
@@ -54,7 +55,7 @@ class Command(BaseCommand):
         else:
             stats = pipeline.process_pending_jobs()
         
-        print(f"Pipeline processing completed:")
+        print("Pipeline processing completed:")
         print(f"  Processed: {stats['processed']}")
         print(f"  Failed: {stats['failed']}")
         print(f"  Duplicates found: {stats['duplicates_found']}")
@@ -63,7 +64,7 @@ class Command(BaseCommand):
         # Show current database state
         from scraper.models import RawJobPosting
         
-        print(f"\nDatabase status:")
+        print("\nDatabase status:")
         print(f"  Pending: {RawJobPosting.objects.filter(processing_status='pending').count()}")
         print(f"  Processed: {RawJobPosting.objects.filter(processing_status='processed').count()}")
         print(f"  Failed: {RawJobPosting.objects.filter(processing_status='failed').count()}")

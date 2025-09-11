@@ -1,16 +1,16 @@
-import time
 import logging
+import time
 import traceback
-from typing import Optional, Dict, List, Any
 from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from selenium import webdriver
-from selenium.webdriver.remote.webelement import WebElement
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.webdriver.support.ui import WebDriverWait
 
 from scraper.models import RawJobPosting, ScrapingSession
 
@@ -104,7 +104,7 @@ class BaseScraper(ABC):
 
                 if attempt == max_retries:
                     self.logger.error(f"All {max_retries} retries exhausted. Final error: {e}")
-                    raise last_exception
+                    raise last_exception from None
                 
                 delay = base_delay * (2 ** attempt)
                 self.logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay}s...")
@@ -204,7 +204,7 @@ class BaseScraper(ABC):
 
                     if job_data and self.validate_job_data(job_data):
                         # Save to database
-                        raw_job = self.save_raw_job(job_data, search_term)
+                        self.save_raw_job(job_data, search_term)
                         scraped_jobs.append(job_data)
                         self.current_session.jobs_successful += 1
 

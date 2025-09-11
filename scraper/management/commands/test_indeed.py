@@ -1,6 +1,8 @@
 from django.core.management.base import BaseCommand
-from scraper.scrapers.indeed import IndeedScraper
+
 from scraper.models import RawJobPosting, ScrapingSession
+from scraper.scrapers.indeed import IndeedScraper
+
 
 class Command(BaseCommand):
     help = 'Test Indeed scraper'
@@ -19,7 +21,7 @@ class Command(BaseCommand):
         max_jobs = options['count']
         #headless = options['headless']
 
-        self.stdout.write(f"Testing Indeed scraper...")
+        self.stdout.write("Testing Indeed scraper...")
         self.stdout.write(f"Search: '{search_term}' in '{location}'")
         self.stdout.write(f"Max jobs: {max_jobs}")
         #self.stdout.write(f"Mode: {'headless' if headless else 'visible browser'}")
@@ -43,7 +45,7 @@ class Command(BaseCommand):
             
             if jobs:
                 # Show sample data
-                self.stdout.write(f"\nSample Jobs:")
+                self.stdout.write("\nSample Jobs:")
                 self.stdout.write("-" * 60)
 
                 for i, job in enumerate(jobs[:3], ):
@@ -55,7 +57,7 @@ class Command(BaseCommand):
                     self.stdout.write(f"  URL: {job['url']}")
 
                 # Data quality analysis
-                self.stdout.write(f"\n" + "="*60)
+                self.stdout.write("\n" + "="*60)
                 self.stdout.write("Data Quality Analysis:")
                 
                 # Count fields
@@ -76,7 +78,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Unique locations: {len(unique_locations)}")
                 
             # Show database state
-            self.stdout.write(f"\n" + "="*60)
+            self.stdout.write("\n" + "="*60)
             self.stdout.write("Database Statistics:")
             self.stdout.write(f"Total raw job postings: {RawJobPosting.objects.count()}")
             self.stdout.write(f"Indeed jobs: {RawJobPosting.objects.filter(source_site='indeed').count()}")
@@ -86,7 +88,7 @@ class Command(BaseCommand):
                 source_site='indeed'
             ).order_by('-started_at')[:3]
             
-            self.stdout.write(f"\nRecent Indeed scraping sessions:")
+            self.stdout.write("\nRecent Indeed scraping sessions:")
             for session in recent_sessions:
                 duration = "N/A"
                 if session.finished_at:
@@ -112,7 +114,7 @@ class Command(BaseCommand):
                 session = error_sessions[0]
                 self.stdout.write(f"Last error details: {session.error_message}")
         
-        self.stdout.write(f"\n" + "="*60)
+        self.stdout.write("\n" + "="*60)
         self.stdout.write("Test completed!")
         self.stdout.write("\nTips for Indeed scraping:")
         self.stdout.write("• Use different search terms to avoid being flagged")
@@ -120,4 +122,4 @@ class Command(BaseCommand):
         self.stdout.write("• Indeed data quality varies - some fields may be missing")
         self.stdout.write("• Consider LinkedIn for higher-quality data")
         
-        self.stdout.write(f"\nNext test: python manage.py test_indeed --search 'data scientist' --location 'New York'")
+        self.stdout.write("\nNext test: python manage.py test_indeed --search 'data scientist' --location 'New York'")

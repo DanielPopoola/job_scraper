@@ -1,6 +1,6 @@
-import re
 import logging
-from typing import Dict, Any, Optional, Set
+import re
+from typing import Any, Dict, Set
 
 
 class JobDataNormalizer:

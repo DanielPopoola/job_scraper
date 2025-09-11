@@ -1,12 +1,13 @@
 import logging
 import traceback
-from typing import List, Dict, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, Optional
 
-from scraper.models import RawJobPosting, Job, JobMapping
+from scraper.models import Job, JobMapping, RawJobPosting
+
 from .cleaner import JobDataCleaner
-from .normalizer import JobDataNormalizer
 from .duplicate_detector import JobDuplicateDetector
+from .normalizer import JobDataNormalizer
 
 
 class JobProcessingPipeline:

@@ -1,14 +1,14 @@
-import time
 import random
+import time
 import urllib.parse
-from typing import Dict, Optional, Any, List
 from datetime import datetime
-from bs4 import BeautifulSoup
+from typing import Any, Dict, List, Optional
 
+from bs4 import BeautifulSoup
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
 
 from .base import BaseScraper
 
@@ -163,9 +163,9 @@ class IndeedScraper(BaseScraper):
         Debug version to see what's happening
         """
         try:
-            print(f"About to click job element...")
+            print("About to click job element...")
             job_element.click()
-            print(f"Clicked! Waiting for description...")
+            print("Clicked! Waiting for description...")
             
             time.sleep(3)
             
@@ -237,11 +237,7 @@ class IndeedScraper(BaseScraper):
                 self.logger.info(f"Scraping Indeed page {page_num + 1} (jobs collected so far: {len(scraped_jobs)})")
                 
                 # Navigate to search page
-                def navigate():
-                    self.driver.get(search_url)
-                    return True
-                
-                self.retry_with_backoff(navigate)
+                self.retry_with_backoff(lambda url=search_url: self.driver.get(url) or True)
                 
                 # Small delay for page to fully load
                 time.sleep(random.uniform(2, 4))
@@ -272,7 +268,7 @@ class IndeedScraper(BaseScraper):
                         
                         if job_data and self.validate_job_data(job_data):
                             # Save to database
-                            raw_job = self.save_raw_job(job_data, search_term)
+                            self.save_raw_job(job_data, search_term)
                             scraped_jobs.append(job_data)
                             self.current_session.jobs_successful += 1
                             

@@ -1,7 +1,7 @@
-import re
 import logging
-from typing import Dict, Optional, Any
+import re
 from html import unescape
+from typing import Any, Dict
 
 
 class JobDataCleaner:

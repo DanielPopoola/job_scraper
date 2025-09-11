@@ -1,8 +1,6 @@
 import logging
-from typing import Dict, List, Optional, Set, Any
-from collections import defaultdict
+from typing import Any, Dict, List, Optional, Set
 
-from .normalizer import JobDataNormalizer
 
 class JobDuplicateDetector:
     """

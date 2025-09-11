@@ -1,12 +1,15 @@
-from typing import Dict, Optional, Any, List
-import requests
+import time
 import urllib.parse
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+import requests
 from bs4 import BeautifulSoup
 
-from .base import BaseScraper
 from scraper.models import ScrapingSession
-import time
-from datetime import datetime
+
+from .base import BaseScraper
+
 
 class LinkedInScraper(BaseScraper):
     """
@@ -251,14 +254,14 @@ class LinkedInScraper(BaseScraper):
 
                         if job_data and self.validate_job_data(job_data):
                             # Save to database
-                            raw_job = self.save_raw_job(job_data, search_term)
+                            self.save_raw_job(job_data, search_term)
                             scraped_jobs.append(job_data)
                             jobs_collected += 1
                             self.current_session.jobs_successful += 1
 
                             self.logger.info(f"Successfully scraped: {job_data.get('title', 'N/A')}")
                         else:
-                            self.logger.warning(f"Invalid job data, skipping")
+                            self.logger.warning("Invalid job data, skipping")
                             self.current_session.jobs_failed += 1
 
                     except Exception as e:
