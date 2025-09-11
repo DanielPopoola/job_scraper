@@ -1,10 +1,10 @@
 import time
 import urllib.parse
-from datetime import datetime
 from typing import Any, Dict, Optional
 
 import requests
 from bs4 import BeautifulSoup
+from django.utils import timezone
 
 from scraper.models import ScrapingSession
 
@@ -31,7 +31,6 @@ class LinkedInScraper(BaseScraper):
         }
 
         self.jobs_per_page = 10  # LinkedIn's default page size
-        self.current_start = 0  # Track pagination state
         self.search_term: str 
 
     def get_site_name(self) -> str:
@@ -59,7 +58,7 @@ class LinkedInScraper(BaseScraper):
         }
         return f"{self.jobs_search_api}?{urllib.parse.urlencode(params)}"
 
-    def find_job_elements(self):
+    def find_job_elements(self, start: int = 0):
         """
         Fetch and return job elements from current page - required by BaseScraper
         
@@ -68,7 +67,7 @@ class LinkedInScraper(BaseScraper):
         try:
             # Build URL for current pagination state
             search_url = self._build_search_url_with_pagination(
-                self.search_term, self.current_start
+                self.search_term, start
             )
             
             self.logger.info(f"Fetching LinkedIn jobs from: {search_url}")
@@ -91,9 +90,6 @@ class LinkedInScraper(BaseScraper):
             ]
             
             self.logger.info(f"Found {len(job_elements)} job elements on current page")
-            
-            # Update pagination state for next call
-            self.current_start += 1
             
             return job_elements
             
@@ -219,9 +215,9 @@ class LinkedInScraper(BaseScraper):
         )
 
         try:
-            # Initialize jos
-            self.current_start = 0
+            # Initialize
             self.search_term  = search_term
+            current_start = 0
 
             # Calculate how many pages we might need
             estimated_pages = (max_jobs // self.jobs_per_page) + 1
@@ -234,7 +230,7 @@ class LinkedInScraper(BaseScraper):
                 self.logger.info(f"Fetching page {pages_fetched + 1}, jobs collected: {jobs_collected}")
 
                 # Get job element from current page
-                job_elements = self.find_job_elements()
+                job_elements = self.find_job_elements(start=current_start)
 
                 if not job_elements:
                     self.logger.info("No more job elements found, stopping pagination")
@@ -269,13 +265,14 @@ class LinkedInScraper(BaseScraper):
                         self.current_session.jobs_failed += 1
 
                 pages_fetched += 1
+                current_start += self.jobs_per_page
 
                 if jobs_collected < max_jobs:
                     time.sleep(2)
 
             # Update session status
             self.current_session.status = 'completed'
-            self.current_session.finished_at = datetime.now()
+            self.current_session.finished_at = timezone.now()
             
             self.logger.info(f"LinkedIn scraping completed successfully: {jobs_collected} jobs")
 
@@ -283,7 +280,7 @@ class LinkedInScraper(BaseScraper):
             self.logger.error(f"LinkedIn scraping failed: {e}")
             self.current_session.status = 'failed'
             self.current_session.error_message = str(e)
-            self.current_session.finished_at = datetime.now()
+            self.current_session.finished_at = timezone.now()
         finally:
             self.current_session.save()
         

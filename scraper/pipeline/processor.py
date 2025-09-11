@@ -117,11 +117,11 @@ class JobProcessingPipeline:
         """Clean raw job data"""
         try:
             return self.cleaner.clean_job_data({
-                'title': raw_job.raw_title,
-                'company': raw_job.raw_company,
-                'location': raw_job.raw_location,
-                'description': raw_job.raw_description,
-                'url': raw_job.source_url,
+                'raw_title': raw_job.raw_title,
+                'raw_company': raw_job.raw_company,
+                'raw_location': raw_job.raw_location,
+                'raw_description': raw_job.raw_description,
+                'source_url': raw_job.source_url,
                 'source_site': raw_job.source_site,
             })
         except Exception as e:

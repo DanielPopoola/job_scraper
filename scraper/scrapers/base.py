@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from django.utils import timezone
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
@@ -222,7 +223,7 @@ class BaseScraper(ABC):
 
             # Update session status
             self.current_session.status = 'completed'
-            self.current_session.finished_at = datetime.now()
+            self.current_session.finished_at = timezone.now()
 
         except Exception as e:
             self.logger.error(f"Scraping session failed: {e}")
@@ -230,7 +231,7 @@ class BaseScraper(ABC):
             
             self.current_session.status = 'failed'
             self.current_session.error_message = str(e)
-            self.current_session.finished_at = datetime.now()
+            self.current_session.finished_at = timezone.now()
         
         finally:
             self.current_session.save()

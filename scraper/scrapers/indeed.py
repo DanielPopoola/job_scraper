@@ -1,10 +1,10 @@
 import random
 import time
 import urllib.parse
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from bs4 import BeautifulSoup
+from django.utils import timezone
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -223,13 +223,11 @@ class IndeedScraper(BaseScraper):
             
             # Scrape multiple pages until we hit the limit or get enough jobs
             page_num = 0
-            jobs_on_current_page = 0
             
             while len(scraped_jobs) < max_jobs and page_num < self.max_pages:
                 self.current_page = page_num
                 
                 # Calculate start index for Indeed's pagination
-                # Indeed uses start=0, start=10, start=20, etc.
                 start_index = page_num * 10
 
                 search_url = self.build_search_url(search_term, location, start=start_index)
@@ -256,13 +254,21 @@ class IndeedScraper(BaseScraper):
                 self.current_session.save()
                 
                 # Process each job on this page
-                for i, job_element in enumerate(job_elements):
+                for i in range(jobs_on_current_page):
                     if len(scraped_jobs) >= max_jobs:
                         self.logger.info(f"Reached max_jobs limit ({max_jobs}), stopping")
                         break
                     
                     try:
                         self.logger.info(f"Processing job {i+1}/{jobs_on_current_page} on page {page_num + 1}")
+                        
+                        # Re-find elements to avoid stale reference
+                        job_elements = self.find_job_elements()
+                        if i >= len(job_elements):
+                            self.logger.warning(f"Could not find job element {i+1}, skipping")
+                            continue
+                        
+                        job_element = job_elements[i]
                         
                         job_data = self.extract_job_data(job_element)
                         
@@ -297,7 +303,7 @@ class IndeedScraper(BaseScraper):
             
             # Update session status
             self.current_session.status = 'completed'
-            self.current_session.finished_at = datetime.now()
+            self.current_session.finished_at = timezone.now()
             
             self.logger.info(f"Indeed scraping completed: {len(scraped_jobs)} jobs scraped from {page_num} pages")
             
@@ -305,7 +311,7 @@ class IndeedScraper(BaseScraper):
             self.logger.error(f"Indeed scraping failed: {e}")
             self.current_session.status = 'failed'
             self.current_session.error_message = str(e)
-            self.current_session.finished_at = datetime.now()
+            self.current_session.finished_at = timezone.now()
         
         finally:
             self.current_session.save()
