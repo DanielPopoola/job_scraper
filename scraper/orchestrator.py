@@ -339,9 +339,9 @@ class OrchestrationExamples:
         
         # Targeted research tasks
         tasks = [
-            ScrapingTask("linkedin", "system administrator", max_jobs=20, priority=1),
+            ScrapingTask("linkedin", "supply chain analyst", max_jobs=20, priority=1),
             ScrapingTask("indeed", "virtual assistant", max_jobs=30, priority=1),
-            ScrapingTask("linkedin", "financial officer", max_jobs=15, priority=2),
+            ScrapingTask("linkedin", "ui/ux designer", max_jobs=15, priority=2),
         ]
         
         return orchestrator.run_scraping_session(tasks)
