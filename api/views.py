@@ -91,6 +91,16 @@ class JobListView(generics.ListAPIView):
     def get_queryset(self):
         queryset = Job.objects.all()
 
+        # Check for filters passed directly from the URL path
+        company_name = self.kwargs.get('company_name')
+        if company_name:
+            queryset = queryset.filter(company__iexact=company_name)
+
+        location_name = self.kwargs.get('location_name')
+        if location_name:
+            # Replace dashes from URL with spaces for searching
+            queryset = queryset.filter(location__icontains=location_name.replace('-', ' '))
+
         # Search functionality
         search_query = self.request.query_params.get('search', None)
         if search_query:
@@ -101,14 +111,16 @@ class JobListView(generics.ListAPIView):
             )
 
         # Filter by company (exact match)
-        company = self.request.query_params.get('company', None)
-        if company:
-            queryset = queryset.filter(company__iexact=company)
-        
+        if not company_name:
+            company = self.request.query_params.get('company', None)
+            if company:
+                queryset = queryset.filter(company__iexact=company)
+            
         # Filter by location (partial match)
-        location = self.request.query_params.get('location', None)
-        if location:
-            queryset = queryset.filter(location__icontains=location)
+        if not location_name:
+            location = self.request.query_params.get('location', None)
+            if location:
+                queryset = queryset.filter(location__icontains=location)
 
         # Filter by recency
         days_since = self.request.query_params.get('days_since', None)
@@ -160,8 +172,15 @@ class JobListView(generics.ListAPIView):
     def _get_applied_filters(self):
         """Helper to show what filters were applied"""
         filters = {}
+
+        # URL path parameters
+        if self.kwargs.get('company_name'):
+            filters['company_from_url'] = self.kwargs.get('company_name')
+        if self.kwargs.get('location_name'):
+            filters['location_from_url'] = self.kwargs.get('location_name').replace('-', ' ')
+
+        # Query parameters
         params = self.request.query_params
-        
         if params.get('search'):
             filters['search'] = params.get('search')
         if params.get('company'):
