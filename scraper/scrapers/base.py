@@ -52,21 +52,29 @@ class BaseScraper(ABC):
         self.logger.setLevel(logging.DEBUG)
 
     def setup_driver(self):
-        """Initialize Selenium WebDriver with appropriate options"""
+        """Initialize Selenium WebDriver with stealth for Chrome 140+"""
         chrome_options = Options()
 
         if self.headless:
-            chrome_options.add_argument('--headless')
+            chrome_options.add_argument("--headless=new")
 
+        # General hardening flags
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_argument("--remote-debugging-port=0")
+        chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
+        chrome_options.add_experimental_option("useAutomationExtension", False)
 
         if self.rotate_user_agents:
             ua = random.choice(self.user_agents)
-            chrome_options.add_argument(f"--user-agent={ua}")
+        else:
+            ua = (
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                f"(KHTML, like Gecko) Chrome/140.0.7339.80 Safari/537.36"
+            )
+        chrome_options.add_argument(f"--user-agent={ua}")
 
         try:
             self.driver = webdriver.Chrome(options=chrome_options)
@@ -80,10 +88,11 @@ class BaseScraper(ABC):
                 fix_hairline=True,
             )
             self.driver.implicitly_wait(self.implicit_wait)
-            self.logger.info("WebDriver initialized succesfully")
+            self.logger.info("WebDriver initialized successfully (stealth hardened)")
         except Exception as e:
             self.logger.error(f"Failed to initialize WebDriver: {e}")
             raise
+
 
     def cleanup_driver(self):
         """Clean up WebDriver resources"""

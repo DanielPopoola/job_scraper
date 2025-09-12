@@ -3,6 +3,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
+from django.utils import timezone
 
 from scraper.models import RawJobPosting, ScrapingSession
 from scraper.pipeline.processor import JobProcessingPipeline
@@ -261,7 +262,7 @@ class JobScrapingOrchestrator:
         """
         Check system health - recent scraping success rates, processing backlogs, etc.
         """
-        now = datetime.now()
+        now = timezone.now()
         last_24h = now - timedelta(hours=24)
         
         # Recent scraping sessions

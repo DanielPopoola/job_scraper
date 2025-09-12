@@ -32,11 +32,10 @@ class Command(BaseCommand):
             "   • Multiple pages accessible in incognito mode\n"
             "   • US locations work best (better than 'remote')\n"
             "   • Smart filtering removes fake job elements\n"
-            "   • Can scrape 100+ jobs if needed\n"
         ))
 
         # Initialize scraper
-        scraper = IndeedScraper(headless=False)
+        scraper = IndeedScraper(headless=True)
 
         try:
             jobs = scraper.scrape_jobs(search_term, max_jobs=max_jobs, location=location)

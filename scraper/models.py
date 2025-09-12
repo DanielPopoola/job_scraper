@@ -80,6 +80,7 @@ class Job(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        ordering = ['-first_seen']
         indexes = [
             models.Index(fields=['company', 'location']),
             models.Index(fields=['first_seen']),

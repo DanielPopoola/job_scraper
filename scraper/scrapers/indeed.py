@@ -15,322 +15,141 @@ from .base import BaseScraper
 
 class IndeedScraper(BaseScraper):
     """
-    Indeed job scraper that respects the login requirement after 2 pages.
-    
-    This scraper will only scrape the first 2 pages (about 20 jobs) to avoid
-    hitting Indeed's login wall, making it suitable for sample data collection.
+    Scrapes the first page of Indeed results using a stable "new tab" strategy
+    and clean, direct URLs to fetch job descriptions.
     """
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
-        # Indeed-specific settings
         self.base_url = "https://www.indeed.com/jobs"
-        self.jobs_per_page = 15
-        self.max_pages = 1
-        self.current_page = 0
-        self.search_params = {}
-    
+
     def get_site_name(self) -> str:
         return 'indeed'
     
-    def build_search_url(self, search_term: str, location: str = "remote", radius: int = 50, start: int = 0) -> str:
-        """
-        Build Indeed search URL with pagination support.
-        
-        Args:
-            search_term: Job search query (e.g., "python developer")
-            location: Job location (default: "remote")
-            radius: Search radius in miles
-            start: Starting job index for pagination
-            
-        Returns:
-            Complete Indeed search URL
-        """
-        self.search_params = {
-            'q': search_term,
-            'l': location,
-            'radius': radius,
-            'from': 'searchOnDesktopSerp,whereautocomplete',
-            'start': start
-        }
-
-        query_string = urllib.parse.urlencode(self.search_params)
-        url = f"{self.base_url}?{query_string}"
-
-        self.logger.info(f"Built Indeed search URL: {url}")
-        return url
+    def build_search_url(self, search_term: str, location: str = "remote", start: int = 0) -> str:
+        params = {'q': search_term, 'l': location, 'radius': 50, 'start': start}
+        query_string = urllib.parse.urlencode(params)
+        return f"{self.base_url}?{query_string}"
     
     def find_job_elements(self) -> List[Any]:
-        """
-        Find all job elements on the current Indeed page.
-        
-        Returns:
-            List of WebElements representing job postings
-        """
         try:
-            # Wait for job listings to load
-            job_container_locator = (By.CLASS_NAME, 'job_seen_beacon')
-            
-            # Use explicit wait to ensure jobs are loaded
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located(job_container_locator)
-            )
-            
-            # Find all job elements
-            job_elements = self.driver.find_elements(*job_container_locator)
-            
-            self.logger.info(f"Found {len(job_elements)} job elements on page {self.current_page + 1}")
-            return job_elements
-            
+            locator = (By.CLASS_NAME, 'job_seen_beacon')
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(locator))
+            return self.driver.find_elements(*locator)
         except TimeoutException:
-            self.logger.warning("Timeout waiting for job elements to load")
+            self.logger.warning("Timeout waiting for job elements to load on search page.")
             return []
+
+    def _get_description_from_new_tab(self, job_url: str) -> Optional[str]:
+        """
+        Opens a new tab, navigates to the job URL, scrapes the description,
+        and closes the tab, returning focus to the main window.
+        """
+        main_window = self.driver.current_window_handle
+        
+        try:
+            self.driver.execute_script("window.open(arguments[0]);", job_url)
+            new_window = [window for window in self.driver.window_handles if window != main_window][0]
+            self.driver.switch_to.window(new_window)
+            WebDriverWait(self.driver, 10).until(lambda d: d.execute_script("return document.readyState") == "complete")
+            
+            time.sleep(random.uniform(2, 4))
+            desc_locator = (By.ID, "jobDescriptionText")
+            description_element = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(desc_locator))
+            description = description_element.text
+            
+            return description
         except Exception as e:
-            self.logger.error(f"Error finding job elements: {e}")
-            return []
+            self.logger.warning(f"Could not get description from new tab ({job_url}): {e}")
+            return None
+        finally:
+            if len(self.driver.window_handles) > 1:
+                self.driver.close()
+            self.driver.switch_to.window(main_window)
 
     def extract_job_data(self, job_element: Any) -> Optional[Dict[str, Any]]:
         """
-        Extract job data from an Indeed job element.
-        
-        Args:
-            job_element: Selenium WebElement containing job information
-            
-        Returns:
-            Dictionary with job data or None if extraction fails
+        Extracts all data for a job, cleaning the URL before using the new tab strategy.
         """
         try:
-            result_html = job_element.get_attribute('innerHTML')
-            soup = BeautifulSoup(result_html, 'html.parser')
-            
-            # Extract job link first (we need this for the URL)
-            try:
-                link_elements = job_element.find_elements(By.TAG_NAME, "a")
-                if not link_elements:
-                    self.logger.warning("No link found in job element")
-                    return None
-                job_url = link_elements[0].get_attribute("href")
-            except Exception as e:
-                self.logger.warning(f"Could not extract job URL: {e}")
+            redirect_url = job_element.find_elements(By.TAG_NAME, "a")[0].get_attribute("href")
+            if not redirect_url:
+                self.logger.warning("Could not find job URL in element.")
                 return None
-            
-            # Extract title using your selector approach
-            try:
-                title_elem = soup.select('.jobTitle')[0]
-                title = title_elem.get_text().strip()
-            except (IndexError, AttributeError):
-                self.logger.warning("Could not extract job title")
-                return None
-            
-            # Extract company name
-            try:
-                company_elem = soup.find_all(attrs={'data-testid': 'company-name'})[0]
-                company = company_elem.get_text().strip()
-            except (IndexError, AttributeError):
-                self.logger.warning("Could not extract company name")
-                company = 'Unknown Company'
-            
-            # Extract location
-            try:
-                location_elem = soup.find_all(attrs={'data-testid': 'text-location'})[0]
-                location = location_elem.get_text().strip()
-            except (IndexError, AttributeError):
-                self.logger.warning("Could not extract location")
-                location = 'Unknown Location'
-            
-            # Extract job snippet description
-            try:
-                description = self.get_full_job_description(job_element)
-            except (IndexError, AttributeError):
-                self.logger.warning("Could not extract job description")
-                description = 'No description available'
-    
+
+            # --- NEW URL CLEANING LOGIC ---
+            parsed_url = urllib.parse.urlparse(redirect_url)
+            job_key = urllib.parse.parse_qs(parsed_url.query).get('jk', [None])[0]
+
+            if not job_key:
+                self.logger.warning(f"Could not parse job key from URL: {redirect_url}")
+                clean_job_url = redirect_url # Fallback to original url
+            else:
+                clean_job_url = f"https://www.indeed.com/viewjob?jk={job_key}"
+            # --- END NEW LOGIC ---
+
+            soup = BeautifulSoup(job_element.get_attribute('innerHTML'), 'html.parser')
+            title = soup.select('.jobTitle')[0].get_text(strip=True)
+            company = soup.find(attrs={'data-testid': 'company-name'}).get_text(strip=True)
+            location = soup.find(attrs={'data-testid': 'text-location'}).get_text(strip=True)
+
+            description = self._get_description_from_new_tab(clean_job_url)
+
             return {
-                'title': title,
-                'company': company,
-                'location': location,
-                'description': description if description else "Description not available",
-                'url': job_url
+                'title': title, 'company': company, 'location': location,
+                'description': description or "Description not available.",
+                'url': redirect_url # Save the original source URL
             }
-            
         except Exception as e:
-            self.logger.error(f"Error extracting job data: {e}")
+            self.logger.error(f"Error extracting basic job data: {e}")
             return None
     
-    def get_full_job_description(self, job_element) -> Optional[str]:
-        """
-        Debug version to see what's happening
-        """
-        try:
-            print("About to click job element...")
-            job_element.click()
-            print("Clicked! Waiting for description...")
-            
-            time.sleep(3)
-            
-
-            possible_selectors = [
-                (By.ID, "jobDescriptionText"),
-                (By.CLASS_NAME, "jobsearch-JobComponent-description"),
-                (By.CSS_SELECTOR, "[data-testid='jobDescription']"),
-                (By.CSS_SELECTOR, ".jobsearch-jobDescriptionText")
-            ]
-            
-            for selector_type, selector_value in possible_selectors:
-                try:
-                    description = WebDriverWait(self.driver, 10).until(
-                        EC.presence_of_element_located((selector_type, selector_value))
-                    )
-                    print(f"Found description with selector: {selector_type} = {selector_value}")
-                    return description.text
-                except TimeoutException:
-                    print(f"Selector failed: {selector_type} = {selector_value}")
-                    continue
-            
-            print("None of the selectors worked!")
-            return "No description available"
-            
-        except Exception as e:
-            print(f"Error in get_full_job_description: {e}")
-            return "No description available"
-    
-    def scrape_jobs(self, search_term: str, max_jobs: int = 100, location: str = "United States"):
-        """
-        Override the base scraping method to handle Indeed's US-only pagination.
-        
-        Args:
-            search_term: What to search for
-            max_jobs: Maximum jobs to scrape (can be higher now)
-            location: Job location filter (defaults to "United States" for best results)
-            
-        Returns:
-            List of scraped job data
-        """
-        
-        # Create scraping session
+    def scrape_jobs(self, search_term: str, max_jobs: int = 15, location: str = "United States") -> List[Dict[str, Any]]:
         from scraper.models import ScrapingSession
         self.current_session = ScrapingSession.objects.create(
             source_site=self.get_site_name(),
             search_term=f"{search_term} in {location}",
             status='running'
         )
-        
         scraped_jobs = []
-        
+
         try:
             self.setup_driver()
+            search_url = self.build_search_url(search_term, location, start=0)
+            self.driver.get(search_url)
+            time.sleep(random.uniform(3, 5))
             
-            # Scrape multiple pages until we hit the limit or get enough jobs
-            page_num = 0
-            
-            while len(scraped_jobs) < max_jobs and page_num < self.max_pages:
-                self.current_page = page_num
-                
-                # Calculate start index for Indeed's pagination
-                start_index = page_num * 10
+            job_elements = self.find_job_elements()
+            if not job_elements:
+                raise Exception("No job elements found on the first page.")
 
-                search_url = self.build_search_url(search_term, location, start=start_index)
+            num_jobs_to_process = min(max_jobs, len(job_elements))
+            self.current_session.jobs_attempted = num_jobs_to_process
+
+            for i in range(num_jobs_to_process):
+                job_element = job_elements[i]
+                self.logger.info(f"Processing job {i+1}/{num_jobs_to_process}...")
+                job_data = self.extract_job_data(job_element)
                 
-                self.logger.info(f"Scraping Indeed page {page_num + 1} (jobs collected so far: {len(scraped_jobs)})")
-                
-                # Navigate to search page
-                self.retry_with_backoff(lambda url=search_url: self.driver.get(url) or True)
-                
-                # Small delay for page to fully load
-                time.sleep(random.uniform(2, 4))
-                
-                # Find actual job elements on current page
-                job_elements = self.find_job_elements()
-                
-                if not job_elements:
-                    self.logger.warning(f"No job elements found on page {page_num + 1}, stopping pagination")
-                    break
-                
-                jobs_on_current_page = len(job_elements)
-                
-                # Update session with attempted jobs
-                self.current_session.jobs_attempted += jobs_on_current_page
-                self.current_session.save()
-                
-                # Process each job on this page
-                for i in range(jobs_on_current_page):
-                    if len(scraped_jobs) >= max_jobs:
-                        self.logger.info(f"Reached max_jobs limit ({max_jobs}), stopping")
-                        break
-                    
-                    try:
-                        self.logger.info(f"Processing job {i+1}/{jobs_on_current_page} on page {page_num + 1}")
-                        
-                        # Re-find elements to avoid stale reference
-                        job_elements = self.find_job_elements()
-                        if i >= len(job_elements):
-                            self.logger.warning(f"Could not find job element {i+1}, skipping")
-                            continue
-                        
-                        job_element = job_elements[i]
-                        
-                        job_data = self.extract_job_data(job_element)
-                        
-                        if job_data and self.validate_job_data(job_data):
-                            # Save to database
-                            self.save_raw_job(job_data, search_term)
-                            scraped_jobs.append(job_data)
-                            self.current_session.jobs_successful += 1
-                            
-                            self.logger.info(f"Successfully scraped: {job_data.get('title', 'N/A')}")
-                        else:
-                            self.logger.warning("Invalid job data, skipping")
-                            self.current_session.jobs_failed += 1
-                    
-                    except Exception as e:
-                        self.logger.error(f"Error processing job {i+1}: {e}")
-                        self.current_session.jobs_failed += 1
-                    
-                    # Small delay between jobs to be polite
-                    time.sleep(random.uniform(1, 2))
-                
-                page_num += 1
-                
-                # Check if we should continue to next page
-                if len(scraped_jobs) < max_jobs and page_num < self.max_pages:
-                    delay = random.uniform(10, 15)
-                    self.logger.info(f"Waiting {delay:.1f}s before next page...")
-                    time.sleep(delay)
-                elif len(scraped_jobs) >= max_jobs:
-                    self.logger.info("Reached target number of jobs, stopping")
-                    break
+                if job_data and self.validate_job_data(job_data):
+                    self.save_raw_job(job_data, search_term)
+                    scraped_jobs.append(job_data)
+                    self.current_session.jobs_successful += 1
+                else:
+                    self.current_session.jobs_failed += 1
             
-            # Update session status
             self.current_session.status = 'completed'
-            self.current_session.finished_at = timezone.now()
-            
-            self.logger.info(f"Indeed scraping completed: {len(scraped_jobs)} jobs scraped from {page_num} pages")
-            
         except Exception as e:
             self.logger.error(f"Indeed scraping failed: {e}")
             self.current_session.status = 'failed'
             self.current_session.error_message = str(e)
-            self.current_session.finished_at = timezone.now()
-        
         finally:
+            self.current_session.finished_at = timezone.now()
             self.current_session.save()
             self.cleanup_driver()
         
+        self.logger.info(f"Indeed scraping finished. Scraped {len(scraped_jobs)} jobs.")
         return scraped_jobs
-    
-    def validate_job_data(self, job_data):
-        """
-        Override validation to be more lenient with Indeed data.
-        
-        Indeed sometimes has missing company names or locations,
-        so we'll be more flexible than the base validation.
-        """
-        # Must have title and URL at minimum
-        if not job_data.get('title') or not job_data.get('title').strip():
-            return False
-        if not job_data.get('url') or not job_data.get('url').strip():
-            return False
-        
-        # Other fields can be missing or "Unknown"
-        return True
+
+    def validate_job_data(self, job_data: Dict[str, Any]) -> bool:
+        return bool(job_data.get('title') and job_data.get('url'))

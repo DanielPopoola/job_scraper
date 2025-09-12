@@ -1,14 +1,14 @@
 import time
 import urllib.parse
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 import requests
 from bs4 import BeautifulSoup
 from django.utils import timezone
 
 from scraper.models import ScrapingSession
-
 from .base import BaseScraper
+from ..decorators import paginated_data
 
 
 class LinkedInScraper(BaseScraper):
@@ -29,70 +29,42 @@ class LinkedInScraper(BaseScraper):
             "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive",
         }
-
-        self.jobs_per_page = 10  # LinkedIn's default page size
-        self.search_term: str 
+        self.jobs_per_page = 10
+        self.search_term: str
 
     def get_site_name(self) -> str:
         return 'linkedin'
 
     def setup_driver(self):
-        """Override to skip Selenium setup - we're using requests instead"""
         self.logger.info("Using requests-based scraping for LinkedIn")
         pass
 
     def cleanup_driver(self):
-        """Override to skip Selenium cleanup"""
         pass
     
-    def build_search_url(self, search_term) -> str:
-        """Build the initial search URL - required by BaseScraper"""
-        self.search_term = search_term
-        return self._build_search_url_with_pagination(search_term, 0)
-    
-    def _build_search_url_with_pagination(self, search_term: str, start: int) -> str:
-        """Build search URL with pagination parameters"""
-        params = {
-            'keywords': search_term,
-            'start': start,
-        }
+    def build_search_url(self, search_term: str, start: int = 0) -> str | None:
+        """
+        Build search URL for LinkedIn, including pagination.
+        """
+        params = {'keywords': search_term, 'start': start}
         return f"{self.jobs_search_api}?{urllib.parse.urlencode(params)}"
+        
 
     def find_job_elements(self, start: int = 0):
-        """
-        Fetch and return job elements from current page - required by BaseScraper
-        
-        This method handles the HTTP request and returns parsed job elements.
-        """
         try:
-            # Build URL for current pagination state
-            search_url = self._build_search_url_with_pagination(
-                self.search_term, start
-            )
-            
+            search_url = self.build_search_url(self.search_term, start)
             self.logger.info(f"Fetching LinkedIn jobs from: {search_url}")
             
-            # Make the request with retry logic
             def make_request():
                 response = requests.get(search_url, headers=self.headers)
                 response.raise_for_status()
                 return response
             
             response = self.retry_with_backoff(make_request)
-            
-            # Parse HTML response
             soup = BeautifulSoup(response.text, "html.parser")
-            
-            # Find job listing elements
-            job_elements = [
-                li for li in soup.find_all("li") 
-                if li.find("div", {"class": "base-card"})
-            ]
-            
+            job_elements = [li for li in soup.find_all("li") if li.find("div", {"class": "base-card"})]
             self.logger.info(f"Found {len(job_elements)} job elements on current page")
-            
             return job_elements
-            
         except requests.RequestException as e:
             self.logger.error(f"Network error fetching jobs: {e}")
             return []
@@ -101,42 +73,17 @@ class LinkedInScraper(BaseScraper):
             return []
         
     def extract_job_data(self, job_element) -> Optional[Dict[str, Any]]:
-        """
-        Extract job data from a single job element - required by BaseScraper
-        
-        Args:
-            job_element: BeautifulSoup element containing job information
-            
-        Returns:
-            Dict with job data or None if extraction fails
-        """
         try:
-            # Get the base card element
             base_card = job_element.find("div", {"class": "base-card"})
             if not base_card or not base_card.get("data-entity-urn"):
                 self.logger.warning("No job ID found in job element")
                 return None
             
-            # Extract job ID from URN
             job_id = base_card.get("data-entity-urn").split(":")[-1]
-            
-            # Extract basic job information
-            title_elem = job_element.find("h3", {"class": "base-search-card__title"})
-            company_elem = (
-                job_element.find("a", {"class": "hidden-nested-link"}) or 
-                job_element.find("h4", {"class": "base-search-card__subtitle"})
-            )
-            location_elem = job_element.find("span", {"class": "job-search-card__location"})
-            
-            # Extract text content
-            title = title_elem.get_text(strip=True)
-            company = company_elem.get_text(strip=True)
-            location = location_elem.get_text(strip=True)
-            
-            # Build job detail URL
+            title = job_element.find("h3", {"class": "base-search-card__title"}).get_text(strip=True)
+            company = (job_element.find("a", {"class": "hidden-nested-link"}) or job_element.find("h4", {"class": "base-search-card__subtitle"})).get_text(strip=True)
+            location = job_element.find("span", {"class": "job-search-card__location"}).get_text(strip=True)
             job_url = f"{self.job_detail_api}/{job_id}"
-            
-            # Fetch detailed description (with retry logic)
             description = self._get_job_description(job_url)
             
             return {
@@ -146,142 +93,95 @@ class LinkedInScraper(BaseScraper):
                 "url": job_url,
                 "description": description or "Description not available",
             }
-            
         except Exception as e:
             self.logger.error(f"Error extracting job data: {e}")
             return None
     
     def _get_job_description(self, job_url: str) -> Optional[str]:
-        """
-        Fetch detailed job description from job posting URL
-        
-        Args:
-            job_url: Full URL to job detail page
-            
-        Returns:
-            Job description text or None if failed
-        """
         try:
             def fetch_description():
                 response = requests.get(job_url, headers=self.headers)
                 response.raise_for_status()
                 return response
             
-            # Use retry logic for description fetching
             response = self.retry_with_backoff(fetch_description)
-            
             soup = BeautifulSoup(response.text, "html.parser")
-            
-            # Look for the description container
             desc_div = soup.find("div", class_="description__text description__text--rich")
             
-            if desc_div:
-                # Look for the main content markup
-                markup_div = desc_div.find("div", class_="show-more-less-html__markup")
-                
-                if markup_div:
-                    # Extract text from paragraphs, lists, etc.
-                    text_parts = []
-                    for elem in markup_div.find_all(['p', 'ul', 'li', 'div']):
-                        text = elem.get_text(" ", strip=True)
-                        if text:
-                            text_parts.append(text)
-                    
-                    return " ".join(text_parts)
+            if desc_div and (markup_div := desc_div.find("div", class_="show-more-less-html__markup")):
+                return " ".join(elem.get_text(" ", strip=True) for elem in markup_div.find_all(['p', 'ul', 'li', 'div']) if elem.get_text(" ", strip=True))
             
             self.logger.warning(f"No description found for job: {job_url}")
-            return None
-            
-        except requests.RequestException as e:
-            self.logger.error(f"Network error fetching description from {job_url}: {e}")
             return None
         except Exception as e:
             self.logger.error(f"Error parsing job description from {job_url}: {e}")
             return None
-        
-    def scrape_jobs(self, search_term, max_jobs=50):
-        """
-        Override the base scraping workflow to handle LinkedIn's pagination properly.
-        
-        This method coordinates multiple page requests to get the desired number of jobs.
-        """
-        scraped_jobs = []
 
-        # Create scraping session
+    @paginated_data(page_size=10, max_pages=100, max_retries=3)
+    def _fetch_pages(self, search_term: str, page: int, page_size: int) -> List[Dict[str, Any]]:
+        """
+        Internal generator method to fetch and process one page of jobs.
+        The decorator handles the pagination loop, retries, and safeguards.
+        """
+        self.logger.info(f"Fetching page {page}...")
+        start_index = (page - 1) * page_size
+        job_elements = self.find_job_elements(start=start_index)
+
+        self.current_session.jobs_attempted += len(job_elements)
+        self.current_session.save()
+
+        jobs_on_page = []
+        for element in job_elements:
+            job_data = self.extract_job_data(element)
+            if job_data and self.validate_job_data(job_data):
+                self.save_raw_job(job_data, search_term)
+                jobs_on_page.append(job_data)
+                self.current_session.jobs_successful += 1
+            else:
+                self.current_session.jobs_failed += 1
+        
+        self.current_session.save()
+        return jobs_on_page
+
+    def scrape_jobs(self, search_term, max_jobs=50) -> List[Dict[str, Any]]:
+        """
+        Public method to scrape jobs. It preserves the original return type (List[Dict]).
+        """
         self.current_session = ScrapingSession.objects.create(
             source_site=self.get_site_name(),
             search_term=search_term,
             status='running'
         )
+        self.search_term = search_term
+        all_scraped_jobs = []
 
         try:
-            # Initialize
-            self.search_term  = search_term
-            current_start = 0
+            job_page_generator = self._fetch_pages(search_term=search_term)
 
-            # Calculate how many pages we might need
-            estimated_pages = (max_jobs // self.jobs_per_page) + 1
-            self.logger.info(f"Planning to fetch up to {estimated_pages} pages for {max_jobs} jobs")
-
-            jobs_collected = 0
-            pages_fetched = 0
-            
-            while jobs_collected < max_jobs and pages_fetched < 10:
-                self.logger.info(f"Fetching page {pages_fetched + 1}, jobs collected: {jobs_collected}")
-
-                # Get job element from current page
-                job_elements = self.find_job_elements(start=current_start)
-
-                if not job_elements:
-                    self.logger.info("No more job elements found, stopping pagination")
+            for page_of_jobs in job_page_generator:
+                all_scraped_jobs.extend(page_of_jobs)
+                if len(all_scraped_jobs) >= max_jobs:
+                    all_scraped_jobs = all_scraped_jobs[:max_jobs]
+                    self.logger.info(f"Reached max_jobs limit ({max_jobs}).")
                     break
-
-                # Update session with attempted jobs
-                self.current_session.jobs_attempted += len(job_elements)
-                self.current_session.save()
-
-                # Process each job element
-                for job_element in job_elements:
-                    if jobs_collected >= max_jobs:
-                        break
-
-                    try:
-                        job_data = self.extract_job_data(job_element)
-
-                        if job_data and self.validate_job_data(job_data):
-                            # Save to database
-                            self.save_raw_job(job_data, search_term)
-                            scraped_jobs.append(job_data)
-                            jobs_collected += 1
-                            self.current_session.jobs_successful += 1
-
-                            self.logger.info(f"Successfully scraped: {job_data.get('title', 'N/A')}")
-                        else:
-                            self.logger.warning("Invalid job data, skipping")
-                            self.current_session.jobs_failed += 1
-
-                    except Exception as e:
-                        self.logger.error(f"Error processing job: {e}")
-                        self.current_session.jobs_failed += 1
-
-                pages_fetched += 1
-                current_start += self.jobs_per_page
-
-                if jobs_collected < max_jobs:
-                    time.sleep(2)
-
-            # Update session status
-            self.current_session.status = 'completed'
-            self.current_session.finished_at = timezone.now()
             
-            self.logger.info(f"LinkedIn scraping completed successfully: {jobs_collected} jobs")
+            self.current_session.status = 'completed'
+            self.logger.info(f"LinkedIn scraping completed: {len(all_scraped_jobs)} jobs scraped.")
 
         except Exception as e:
             self.logger.error(f"LinkedIn scraping failed: {e}")
             self.current_session.status = 'failed'
             self.current_session.error_message = str(e)
-            self.current_session.finished_at = timezone.now()
         finally:
+            self.current_session.finished_at = timezone.now()
             self.current_session.save()
         
-        return scraped_jobs
+        return all_scraped_jobs
+
+    def validate_job_data(self, job_data):
+        required_fields = ['title', 'company', 'location', 'url', 'description']
+        for field in required_fields:
+            if not job_data.get(field) or not job_data.get(field).strip():
+                self.logger.warning(f"Validation failed: missing or empty field '{field}'")
+                return False
+        return True
