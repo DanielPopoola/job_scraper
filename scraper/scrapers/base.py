@@ -1,8 +1,8 @@
 import logging
+import random
 import time
 import traceback
 from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from django.utils import timezone
@@ -12,6 +12,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium_stealth import stealth
 
 from scraper.models import RawJobPosting, ScrapingSession
 
@@ -29,7 +30,14 @@ class BaseScraper(ABC):
         self.implicit_wait = implicit_wait
         self.driver: Optional[webdriver.Chrome] = None
         self.current_session = None
-        
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/118.0.5993.70 Safari/537.36",
+        ]
+        self.rotate_user_agents = False
+
         # Configure logging
         self.setup_logging()
 
@@ -56,13 +64,21 @@ class BaseScraper(ABC):
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
 
-        chrome_options.add_argument(
-            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        )
+        if self.rotate_user_agents:
+            ua = random.choice(self.user_agents)
+            chrome_options.add_argument(f"--user-agent={ua}")
 
         try:
             self.driver = webdriver.Chrome(options=chrome_options)
+            stealth(
+                self.driver,
+                languages=["en-US", "en"],
+                vendor="Google Inc.",
+                platform="Win32",
+                webgl_vendor="Intel Inc.",
+                renderer="Intel Iris OpenGL Engine",
+                fix_hairline=True,
+            )
             self.driver.implicitly_wait(self.implicit_wait)
             self.logger.info("WebDriver initialized succesfully")
         except Exception as e:
