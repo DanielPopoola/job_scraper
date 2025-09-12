@@ -294,16 +294,29 @@ class TrendsView(APIView):
     
     def _get_company_statistics(self, cutoff_date, limit):
         """Get top companies by job posting volume"""
-        companies = Job.objects.filter(
+        companies_qs = Job.objects.filter(
             first_seen__gte=cutoff_date
         ).values('company').annotate(
             job_count=Count('id'),
             latest_posting=Max('first_seen'),
-            avg_days_active=Avg(F('last_seen') - F('first_seen'))
+            avg_duration=Avg(F('last_seen') - F('first_seen'))
         ).order_by('-job_count')[:limit]
 
-        return CompanyStatsSerializer(companies, many=True).data
-    
+        company_stats = []
+        for company in companies_qs:
+            avg_days = 0
+            if company['avg_duration']:
+                avg_days = company['avg_duration'].total_seconds() / (24 * 3600)
+
+            company_stats.append({
+                'company': company['company'],
+                'job_count': company['job_count'],
+                'latest_posting': company['latest_posting'],
+                'avg_days_active': round(avg_days, 2)
+            })
+
+        return CompanyStatsSerializer(company_stats, many=True).data
+
     def _get_location_statistics(self, cutoff_date, limit):
         """Get top locations by job volume"""
         locations = Job.objects.filter(
@@ -344,11 +357,20 @@ class TrendsView(APIView):
     
     def _get_market_summary(self, cutoff_date):
         """High-level market metrics"""
+        # Get the newest job object
+        newest_job_obj = Job.objects.filter(first_seen__gte=cutoff_date).order_by('-first_seen').first()
+        
+        # Serialize the object before adding it to the response
+        serialized_newest_job = None
+        if newest_job_obj:
+            # We pass the request into the serializer's context so it can build full URLs
+            serialized_newest_job = JobSummarySerializer(newest_job_obj, context={'request': self.request}).data
+
         return {
             'unique_companies': Job.objects.filter(first_seen__gte=cutoff_date).values('company').distinct().count(),
             'unique_locations': Job.objects.filter(first_seen__gte=cutoff_date).values('location').distinct().count(),
             'total_active_jobs': Job.objects.filter(last_seen__gte=timezone.now() - timedelta(days=7)).count(),
-            'newest_job': Job.objects.filter(first_seen__gte=cutoff_date).order_by('-first_seen').first()
+            'newest_job': serialized_newest_job
         }
 
 # =============================================================================
@@ -367,6 +389,13 @@ class HealthCheckView(APIView):
 
         orchestrator = JobScrapingOrchestrator(config=None)
         health_data = orchestrator.get_system_health()
+
+        # --- FIX: Serialize the nested ScrapingSession object ---
+        for site in health_data.get('site_health', {}):
+            last_session = health_data['site_health'][site].get('last_successful')
+            if last_session:
+                health_data['site_health'][site]['last_successful'] = ScrapingSessionSerializer(last_session).data
+        # --- END FIX ---
 
         # Add some additional API-specific health checks
         health_data['api_status'] = 'healthy'
