@@ -234,3 +234,118 @@ class JobFilter(django_filters.FilterSet):
             return queryset.filter(skill_q)
         
         return queryset
+
+class RawJobPostingFilter(django_filters.FilterSet):
+    """
+    Filtering for raw scraped job postings.
+    Useful for debugging and data quality analysis.
+    """
+    # Filter by source site
+    site = django_filters.ChoiceFilter(
+        field_name='source_site',
+        choices=[
+            ('linkedin', 'LinkedIn'),
+            ('indeed', 'Indeed'),
+        ],
+        label='Source site'
+    )
+
+    # Filter by processing status
+    status = django_filters.ChoiceFilter(
+        field_name='processing_status',
+        choices=[
+            ('pending', 'Pending Processing'),
+            ('processed', 'Successfully Processed'), 
+            ('failed', 'Processing Failed'),
+        ],
+        label='Processing Status'
+    )
+    
+    # Date filters
+    scraped_within_days = django_filters.NumberFilter(
+        method='filter_scraped_within_days',
+        label='Scraped within X days'
+    )
+    
+    # Text search in raw content
+    raw_search = django_filters.CharFilter(
+        method='filter_raw_search',
+        label='Search in raw title/company/description'
+    )
+
+    class Meta:
+        model = RawJobPosting
+        fields = []
+
+    def filter_scraped_within_days(self, queryset, name, value):
+        if not value or value < 0:
+            return queryset
+        
+        cutoff_date = timezone.now() - timedelta(days=value)
+        return queryset.filter(scraped_at__gte=cutoff_date)
+
+    def filter_raw_search(self, queryset, name, value):
+        if not value:
+            return queryset
+        
+        return queryset.filter(
+            Q(raw_title__icontains=value) |
+            Q(raw_company__icontains=value) |
+            Q(raw_description__icontains=value)
+        )
+
+class ScrapingSessionFilter(django_filters.FilterSet):
+    """Filter for scraping session monitoring."""
+    
+    site = django_filters.CharFilter(
+        field_name='source_site',
+        lookup_expr='iexact',
+        label='Source Site'
+    )
+
+    status = django_filters.ChoiceFilter(
+        field_name='status',
+        choices=[
+            ('running', 'Running'),
+            ('completed', 'Completed Successfully'),
+            ('failed', 'Failed'),
+            ('partial', 'Partially Completed'),
+        ],
+        label='Session Status'
+    )
+    
+    # Sessions within X days
+    within_days = django_filters.NumberFilter(
+        method='filter_within_days',
+        label='Sessions within X days'
+    )
+    
+    # Minimum success rate filter
+    min_success_rate = django_filters.NumberFilter(
+        method='filter_min_success_rate',
+        label='Minimum success rate (%)'
+    )
+    
+    class Meta:
+        model = ScrapingSession
+        fields = []
+    
+    def filter_within_days(self, queryset, name, value):
+        if not value or value < 0:
+            return queryset
+        
+        cutoff_date = timezone.now() - timedelta(days=value)
+        return queryset.filter(started_at__gte=cutoff_date)
+    
+    def filter_min_success_rate(self, queryset, name, value):
+        """Filter sessions with at least X% success rate"""
+        if value is None or value < 0 or value > 100:
+            return queryset
+        
+        # Calculate success rate and filter
+        filtered_ids = []
+        for session in queryset:
+            if session.success_rate() >= value:
+                filtered_ids.append(session.id)
+        
+        return queryset.filter(id__in=filtered_ids)
