@@ -440,7 +440,7 @@ def quick_stats(request):
     stats = {
         'total_jobs': Job.objects.count(),
         'jobs_this_week': Job.objects.filter(
-            firs_seen__gte=timezone.now() - timedelta(days=7)
+            first_seen__gte=timezone.now() - timedelta(days=7)
         ).count(),
         'pending_processing': RawJobPosting.objects.filter(
             processing_status='pending'
