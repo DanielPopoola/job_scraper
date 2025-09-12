@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
 
 from scraper.models import Job, RawJobPosting, ScrapingSession, JobMapping
 from scraper.orchestrator import JobScrapingOrchestrator
@@ -27,6 +29,7 @@ class APIRootView(APIView):
     
     API discovery endpoint. Shows available endpoints and basic usage info.
     """
+    @extend_schema(responses={200: OpenApiTypes.STR})
     def get(self, request):
         """Return a directory of available API endpoints"""
 
@@ -115,11 +118,12 @@ class JobListView(generics.ListAPIView):
 
         company_name = self.kwargs.get('company_name')
         if company_name:
-            queryset = queryset.filter(company__iexact=company_name)
+            queryset = queryset.filter(company__icontains=company_name)
 
         location_name = self.kwargs.get('location_name')
         if location_name:
-            queryset = queryset.filter(location__iexact=location_name)
+            search_term = location_name.replace('-', ' ')
+            queryset = queryset.filter(location__icontains=search_term)
 
         return queryset
 
@@ -150,7 +154,7 @@ class JobListView(generics.ListAPIView):
             'results': serializer.data,
             'count': len(serializer.data),
             'meta': {
-                'filters_applied': self.__get_applied_filters(),
+                'filters_applied': self._get_applied_filters(),
                 'generated_at': timezone.now().isoformat()
             }
         })
@@ -189,7 +193,7 @@ class JobDetailView(generics.RetrieveAPIView):
     Uses full JobSerializer with all fields including description.
     """
     queryset = Job.objects.all()
-    serializer_class = JobSerializer()
+    serializer_class = JobSerializer
 
     def retrieve(self, request, *args, **kwargs):
         """
@@ -220,7 +224,7 @@ class RawJobPostingListView(generics.ListAPIView):
     Access to raw scraped data. Useful for debugging and data quality analysis.
     """
     queryset = RawJobPosting.objects.all().order_by('-scraped_at')
-    serializer_class = RawJobPostingSerializer()
+    serializer_class = RawJobPostingSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = RawJobPostingFilter
     
@@ -247,6 +251,7 @@ class TrendsView(APIView):
     
     Market intelligence endpoint. Provides aggregated analytics about the job market.
     """
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def get(self, request):
         """
         Return various market insights based on query parameters.
@@ -266,7 +271,7 @@ class TrendsView(APIView):
         cutoff_date = timezone.now() - timedelta(days=days)
     
         response_data = {
-            'analysis_perio': f'{days} days',
+            'analysis_period': f'{days} days',
             'generated_at': timezone.now().isoformat(),
         }
 
@@ -384,6 +389,7 @@ class HealthCheckView(APIView):
     System health endpoint. Shows scraping performance, processing status, etc.
     Essential for production monitoring!
     """
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def get(self, request):
         """Return comprehensive health metrics"""
 

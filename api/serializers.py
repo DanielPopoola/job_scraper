@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from datetime import datetime, timezone
 from django.utils import timezone as django_timezone
+from drf_spectacular.utils import extend_schema_field
 
 from scraper.models import Job, RawJobPosting, ScrapingSession, JobMapping
 
@@ -38,6 +39,7 @@ class JobSerializer(serializers.ModelSerializer):
             'first_seen', 'last_seen'
         ]
 
+    @extend_schema_field(serializers.IntegerField)
     def get_days_since_first_seen(self, obj):
         """Calculate how many days ago this job was first discovered"""
         if obj.first_seen:
@@ -45,6 +47,7 @@ class JobSerializer(serializers.ModelSerializer):
             return delta.days
         return None
     
+    @extend_schema_field(serializers.IntegerField)
     def get_days_since_last_seen(self, obj):
         """Calculate how many days ago this job was last confirmed active"""
         if obj.last_seen:
@@ -52,6 +55,7 @@ class JobSerializer(serializers.ModelSerializer):
             return delta.days
         return None
     
+    @extend_schema_field(serializers.IntegerField)
     def get_is_recently_active(self, obj):
         """Helper field to quickly identify if job is still active"""
         return obj.is_recently_seen(days=7)
@@ -70,12 +74,14 @@ class JobSummarySerializer(serializers.ModelSerializer):
             'days_since_first_seen', 'is_recently_active',
         ]
 
+    @extend_schema_field(serializers.IntegerField)
     def get_days_since_first_seen(self, obj):
         if obj.first_seen:
             delta = django_timezone.now() - obj.first_seen
             return delta.days
         return None
     
+    @extend_schema_field(serializers.IntegerField)
     def get_is_recently_active(self, obj):
         return obj.is_recently_seen(days=7)
     
@@ -106,6 +112,7 @@ class RawJobPostingSerializer(serializers.ModelSerializer):
             'days_since_scraped',
         ]
     
+    @extend_schema_field(serializers.IntegerField)
     def get_days_since_scraped(self, obj):
         """How long ago was this scraped?"""
         if obj.scraped_at:
@@ -134,6 +141,7 @@ class ScrapingSessionSerializer(serializers.ModelSerializer):
             'jobs_per_minute','status', 'status_display', 'error_message',
         ]
     
+    @extend_schema_field(serializers.FloatField)
     def get_duration_minutes(self, obj):
         """How long did this scraping session take?"""
         duration = obj.duration()
@@ -141,10 +149,12 @@ class ScrapingSessionSerializer(serializers.ModelSerializer):
             return round(duration.total_seconds() / 60, 2)
         return None
     
+    @extend_schema_field(serializers.FloatField)
     def get_success_rate_percent(self, obj):
         """What percentage of jobs were successfully scraped?"""
         return round(obj.success_rate(), 2)
     
+    @extend_schema_field(serializers.FloatField)
     def get_jobs_per_minute(self, obj):
         """Scraping efficiency metric"""
         duration = obj.duration()

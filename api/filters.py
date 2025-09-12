@@ -1,5 +1,5 @@
 import django_filters
-from django.db.models import Q
+from django.db.models import Case, When, Value, IntegerField, Q
 from datetime import timedelta
 from django.utils import timezone
 
@@ -142,24 +142,34 @@ class JobFilter(django_filters.FilterSet):
     
     def filter_search(self, queryset, name, value):
         """
-        Global search across multiple fields using OR logic.
-        Searches in title, company name, and description.
+        A ranked search across multiple fields.
+
+        Assigns a relevance score based on where the search term is found
+        and orders the results by that score.
         """
         if not value:
             return queryset
-        
-        return queryset.filter(
-            Q(title__icontains=value) |
-            Q(company__icontains=value) |
-            Q(description__icontains=value)
+
+        # Annotate the queryset with a relevance score
+        queryset = queryset.annotate(
+            relevance=Case(
+                When(title__icontains=value, then=Value(3)),
+                When(company__icontains=value, then=Value(2)),
+                When(description__icontains=value, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField()
+            )
         )
+
+        # Filter out non-matches and order by relevance (highest first)
+        return queryset.filter(relevance__gt=0).order_by('-relevance', '-first_seen')
 
     def filter_posted_within_days(self, queryset, name, value):
         """Filter job posted within last N days"""
         if not value or value < 0:
             return queryset
 
-        cutoff_date = timezone.now() - timedelta(days=value)
+        cutoff_date = timezone.now() - timedelta(days=int(value))
         return queryset.filter(first_seen__gte=cutoff_date)
     
     def filter_active_within_days(self, queryset, name, value):
@@ -167,7 +177,7 @@ class JobFilter(django_filters.FilterSet):
         if not value or value < 0:
             return queryset
         
-        cutoff_date = timezone.now() - timedelta(days=value)
+        cutoff_date = timezone.now() - timedelta(days=int(value))
         return queryset.filter(last_seen__gte=cutoff_date)
     
     def filter_recently_active(self, queryset, name, value):
