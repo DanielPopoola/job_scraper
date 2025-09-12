@@ -1,6 +1,6 @@
 import django_filters
 from django.db.models import Q
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.utils import timezone
 
 from scraper.models import Job, RawJobPosting, ScrapingSession

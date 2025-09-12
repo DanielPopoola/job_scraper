@@ -15,7 +15,7 @@ from .serializers import (
     ScrapingSessionSerializer, JobMappingSerializer, CompanyStatsSerializer,
     LocationStatsSerializer, SystemHealthSerializer
 )
-from .filters import JobFilter
+from .filters import JobFilter, RawJobPostingFilter, ScrapingSessionFilter
 
 # =============================================================================
 # API Discovery Endpoint
@@ -221,30 +221,9 @@ class RawJobPostingListView(generics.ListAPIView):
     """
     queryset = RawJobPosting.objects.all().order_by('-scraped_at')
     serializer_class = RawJobPostingSerializer()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = RawJobPostingFilter
     
-    def get_queryset(self):
-        queryset = super().get_queryset()
-
-        # Filter by processing status
-        status = self.request.query_params.get('status', None)
-        if status:
-            queryset = queryset.filter(processing_status=status)
-
-        # Filter by source site
-        site = self.request.query_params.get('site', None)
-        if site:
-            queryset = queryset.filter(source_site=site)
-        
-        # Filter by date range
-        days_ago = self.request.query_params.get('days_ago', None)
-        if days_ago:
-            try:
-                cutoff = timezone.now() - timedelta(days=int(days_ago))
-                queryset = queryset.filter(scraped_at__gte=cutoff)
-            except ValueError:
-                pass
-                
-        return queryset
     
 class ScrapingSessionListView(generics.ListAPIView):
     """
@@ -255,29 +234,8 @@ class ScrapingSessionListView(generics.ListAPIView):
     
     queryset = ScrapingSession.objects.all().order_by('-started_at')
     serializer_class = ScrapingSessionSerializer
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        # Filter by site
-        site = self.request.query_params.get('site', None)
-        if site:
-            queryset = queryset.filter(source_site=site)
-        
-        # Filter by status
-        status = self.request.query_params.get('status', None)
-        if status:
-            queryset = queryset.filter(status=status)
-        
-        # Limit to recent sessions by default
-        limit_days = self.request.query_params.get('days', '7')
-        try:
-            cutoff = timezone.now() - timedelta(days=int(limit_days))
-            queryset = queryset.filter(started_at__gte=cutoff)
-        except ValueError:
-            pass
-            
-        return queryset
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ScrapingSessionFilter
 
 # =============================================================================
 # Market Intelligence / Analytics Views
