@@ -5,6 +5,8 @@ from rest_framework import generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
+from django_filters.rest_framework import DjangoFilterBackend
 
 from scraper.models import Job, RawJobPosting, ScrapingSession, JobMapping
 from scraper.orchestrator import JobScrapingOrchestrator
@@ -13,6 +15,7 @@ from .serializers import (
     ScrapingSessionSerializer, JobMappingSerializer, CompanyStatsSerializer,
     LocationStatsSerializer, SystemHealthSerializer
 )
+from .filters import JobFilter
 
 # =============================================================================
 # API Discovery Endpoint
@@ -87,56 +90,39 @@ class JobListView(generics.ListAPIView):
     """
     
     serializer_class = JobSummarySerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = JobFilter
 
     def get_queryset(self):
+        """
+        All query parameter filtering is now handled automatically by JobFilter.
+        We only need to handle the special filtering from semantic URL paths.
+        """
+        is_company_in_path = 'company_name' in self.kwargs
+        is_company_in_query = any(
+            key in self.request.query_params for key in
+            ['company_exact', 'company_contains', 'companies']
+        )
+
+        if is_company_in_path and is_company_in_query:
+            raise ValidationError({
+                "error": "Cannot filter by company in both the URL path and query parameters at the same time.",
+                "path_filter": f"company_name='{self.kwargs['company_name']}",
+                "query_filters": [f for f in ['company_exact', 'company_contains', 'companies'] if f in self.request.query_params]
+            })
+
         queryset = Job.objects.all()
 
-        # Check for filters passed directly from the URL path
         company_name = self.kwargs.get('company_name')
         if company_name:
             queryset = queryset.filter(company__iexact=company_name)
 
         location_name = self.kwargs.get('location_name')
         if location_name:
-            # Replace dashes from URL with spaces for searching
-            queryset = queryset.filter(location__icontains=location_name.replace('-', ' '))
-
-        # Search functionality
-        search_query = self.request.query_params.get('search', None)
-        if search_query:
-            queryset = queryset.filter(
-                Q(title__icontains=search_query) |
-                Q(location__icontains=search_query) |
-                Q(description__icontains=search_query)
-            )
-
-        # Filter by company (exact match)
-        if not company_name:
-            company = self.request.query_params.get('company', None)
-            if company:
-                queryset = queryset.filter(company__iexact=company)
-            
-        # Filter by location (partial match)
-        if not location_name:
-            location = self.request.query_params.get('location', None)
-            if location:
-                queryset = queryset.filter(location__icontains=location)
-
-        # Filter by recency
-        days_since = self.request.query_params.get('days_since', None)
-        if days_since:
-            try:
-                cutoff_date = timezone.now() - timedelta(days=int(days_since))
-                queryset = queryset.filter(last_seen__gte=cutoff_date)
-            except ValueError:
-                pass
-
-        # Default ordering (newest first)
-        ordering = self.request.query_params.get('ordering', '-first_seen')
-        queryset = queryset.order_by(ordering)
+            queryset = queryset.filter(location__iexact=location_name)
 
         return queryset
-    
+
     def list(self, request, *args, **kwargs):
         """
         Override to add custom response metadata.
