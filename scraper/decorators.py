@@ -1,7 +1,8 @@
 import logging
 import time
 from functools import wraps
-from typing import Optional, Callable, Any, Generator
+from typing import Any, Callable, Generator, Optional
+
 
 def paginated_data(
     page_size: int = 100,

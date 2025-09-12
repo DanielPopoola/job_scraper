@@ -1,14 +1,14 @@
-import time
 import urllib.parse
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
 import requests
 from bs4 import BeautifulSoup
 from django.utils import timezone
 
 from scraper.models import ScrapingSession
-from .base import BaseScraper
+
 from ..decorators import paginated_data
+from .base import BaseScraper
 
 
 class LinkedInScraper(BaseScraper):

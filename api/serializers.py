@@ -1,9 +1,9 @@
-from rest_framework import serializers
-from datetime import datetime, timezone
+
 from django.utils import timezone as django_timezone
 from drf_spectacular.utils import extend_schema_field
+from rest_framework import serializers
 
-from scraper.models import Job, RawJobPosting, ScrapingSession, JobMapping
+from scraper.models import Job, JobMapping, RawJobPosting, ScrapingSession
 
 
 class JobSerializer(serializers.ModelSerializer):

@@ -1,6 +1,7 @@
-import django_filters
-from django.db.models import Case, When, Value, IntegerField, Q
 from datetime import timedelta
+
+import django_filters
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.utils import timezone
 
 from scraper.models import Job, RawJobPosting, ScrapingSession

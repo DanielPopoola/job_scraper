@@ -72,7 +72,7 @@ class BaseScraper(ABC):
         else:
             ua = (
                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                f"(KHTML, like Gecko) Chrome/140.0.7339.80 Safari/537.36"
+                "(KHTML, like Gecko) Chrome/140.0.7339.80 Safari/537.36"
             )
         chrome_options.add_argument(f"--user-agent={ua}")
 

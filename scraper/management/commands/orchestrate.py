@@ -1,12 +1,10 @@
-import json
 from django.core.management.base import BaseCommand, CommandError, CommandParser
-from django.utils import timezone
 
 from scraper.orchestrator import (
-    JobScrapingOrchestrator, 
-    ScrapingTask, 
+    JobScrapingOrchestrator,
     OrchestrationConfig,
-    OrchestrationExamples
+    OrchestrationExamples,
+    ScrapingTask,
 )
 
 
@@ -141,7 +139,7 @@ class Command(BaseCommand):
             self._display_results(results)
 
         except Exception as e:
-            raise CommandError(f"Orchestration failed: {e}")
+            raise CommandError(f"Orchestration failed: {e}") from e
         
     def _run_custom_mode(self, options):
         """Run custom orchestration based on command line options"""
@@ -182,7 +180,7 @@ class Command(BaseCommand):
             results = orchestrator.run_scraping_session(tasks)
             self._display_results(results)
         except Exception as e:
-            raise CommandError(f"Custom orchestration failed: {e}")
+            raise CommandError(f"Custom orchestration failed: {e}") from e
     
     def _show_dry_run(self, tasks, config):
         """Show what would be executed without actually doing it"""
@@ -211,7 +209,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"   → Wait {delay}s before next task")
         
         self.stdout.write(f"\nEstimated total time: {total_estimated_time:.1f} minutes")
-        self.stdout.write(f"Configuration:")
+        self.stdout.write("Configuration:")
         self.stdout.write(f"  Delay between sites: {config.delay_between_sites}s")
         self.stdout.write(f"  Delay between searches: {config.delay_between_searches}s")
         self.stdout.write(f"  Process immediately: {config.process_immediately}")
@@ -249,7 +247,7 @@ class Command(BaseCommand):
         # Processing details
         if 'processing_stats' in results:
             stats = results['processing_stats']
-            self.stdout.write(f"\nProcessing Results:")
+            self.stdout.write("\nProcessing Results:")
             self.stdout.write(f"  Processed: {stats['processed']}")
             self.stdout.write(f"  Failed: {stats['failed']}")
             self.stdout.write(f"  Duplicates: {stats['duplicates_found']}")
@@ -257,9 +255,9 @@ class Command(BaseCommand):
         
         # Next steps
         if results['tasks_completed'] > 0:
-            self.stdout.write(self.style.SUCCESS(f"\n✅ Orchestration completed successfully!"))
+            self.stdout.write(self.style.SUCCESS("\n✅ Orchestration completed successfully!"))
             
             if not results.get('processing_stats'):
                 self.stdout.write("Next step: python manage.py process_jobs")
         else:
-            self.stdout.write(self.style.ERROR(f"\n❌ No tasks completed successfully"))
+            self.stdout.write(self.style.ERROR("\n❌ No tasks completed successfully"))

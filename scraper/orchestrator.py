@@ -1,8 +1,9 @@
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import timedelta
+from typing import Any, Dict, List
+
 from django.utils import timezone
 
 from scraper.models import RawJobPosting, ScrapingSession

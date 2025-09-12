@@ -1,10 +1,11 @@
+from datetime import timedelta
+
 from django.urls import reverse
 from django.utils import timezone
-from datetime import timedelta
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from scraper.models import Job, RawJobPosting, ScrapingSession, JobMapping
+from scraper.models import Job, ScrapingSession
 
 
 class JobAPITests(APITestCase):

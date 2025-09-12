@@ -1,23 +1,29 @@
 from datetime import timedelta
-from django.db.models import Count, Q, Avg, Max, F
+
+from django.db.models import Avg, Count, F, Max
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.exceptions import ValidationError
-from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema
-from drf_spectacular.types import OpenApiTypes
 
-from scraper.models import Job, RawJobPosting, ScrapingSession, JobMapping
+from scraper.models import Job, JobMapping, RawJobPosting, ScrapingSession
 from scraper.orchestrator import JobScrapingOrchestrator
-from .serializers import (
-    JobSerializer, JobSummarySerializer, RawJobPostingSerializer,
-    ScrapingSessionSerializer, JobMappingSerializer, CompanyStatsSerializer,
-    LocationStatsSerializer, SystemHealthSerializer
-)
+
 from .filters import JobFilter, RawJobPostingFilter, ScrapingSessionFilter
+from .serializers import (
+    CompanyStatsSerializer,
+    JobSerializer,
+    JobSummarySerializer,
+    LocationStatsSerializer,
+    RawJobPostingSerializer,
+    ScrapingSessionSerializer,
+    SystemHealthSerializer,
+)
 
 # =============================================================================
 # API Discovery Endpoint
