@@ -1,10 +1,13 @@
+from collections import Counter
 from datetime import timedelta
+import logging
+import re
 
 from django.db.models import Avg, Count, F, Max
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import generics
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
@@ -23,7 +26,10 @@ from .serializers import (
     RawJobPostingSerializer,
     ScrapingSessionSerializer,
     SystemHealthSerializer,
+    SkillStatsSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # API Discovery Endpoint
@@ -384,6 +390,62 @@ class TrendsView(APIView):
             'newest_job': serialized_newest_job
         }
 
+class SkillTrendsView(APIView):
+    """
+    GET /api/trends/skills/
+    
+    Provides aggregated data on skill demand from job descriptions.
+    """
+    # A predefined list of skills to search for. This could be expanded or moved to a model.
+    SKILL_KEYWORDS = [
+        'Python', 'JavaScript', 'Java', 'C#', 'C++', 'Go', 'Rust', 'PHP', 'TypeScript',
+        'React', 'Angular', 'Vue', 'Node.js', 'Django', 'Flask', 'Spring', '.NET',
+        'SQL', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'Cassandra',
+        'AWS', 'Azure', 'Google Cloud', 'GCP', 'Docker', 'Kubernetes', 'Terraform',
+        'Linux', 'Git', 'CI/CD', 'Agile', 'Scrum',
+        'Machine Learning', 'Data Science', 'Pandas', 'NumPy', 'TensorFlow', 'PyTorch',
+        'AI', 'Big Data', 'Spark', 'Hadoop'
+    ]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='days', description='Analysis time window (default 30)', type=OpenApiTypes.INT),
+            OpenApiParameter(name='limit', description='Number of top skills to return (default 15)', type=OpenApiTypes.INT),
+        ],
+        responses=SkillStatsSerializer(many=True)
+    )
+    def get(self, request):
+        """
+        Analyzes job descriptions for skill keywords and returns top N skills.
+        """
+        days = int(request.query_params.get('days', 30))
+        limit = int(request.query_params.get('limit', 15))
+        cutoff_date = timezone.now() - timedelta(days=days)
+
+        # Get all relevant job descriptions in one query
+        descriptions = Job.objects.filter(
+            last_seen__gte=cutoff_date
+        ).values_list('description', flat=True)
+
+        # Perform the counting in memory
+        skill_counts = Counter()
+        for desc in descriptions:
+            desc_lower = desc.lower()
+            for skill in self.SKILL_KEYWORDS:
+                # Use word boundaries to avoid matching substrings (e.g., 'react' in 'proactive')
+                if re.search(r'\b' + re.escape(skill.lower()) + r'\b', desc_lower):
+                    skill_counts[skill] += 1
+        
+        # Get the most common skills
+        top_skills = skill_counts.most_common(limit)
+
+        # Format the data for the serializer
+        serializer_data = [{'skill': skill, 'count': count} for skill, count in top_skills]
+        serializer = SkillStatsSerializer(serializer_data, many=True)
+        
+        return Response(serializer.data)
+
+
 # =============================================================================
 # System Health and Monitoring
 # =============================================================================
@@ -399,8 +461,14 @@ class HealthCheckView(APIView):
     def get(self, request):
         """Return comprehensive health metrics"""
 
-        orchestrator = JobScrapingOrchestrator(config=None)
-        health_data = orchestrator.get_system_health()
+        orchestrator = JobScrapingOrchestrator()
+        health_data = {}
+        try:
+            health_data = orchestrator.get_system_health()
+        except Exception as e:
+            logger.error(f"Error getting system health from orchestrator: {e}")
+            health_data['orchestrator_error'] = str(e)
+            health_data['overall_status'] = 'degraded'
 
         # --- FIX: Serialize the nested ScrapingSession object ---
         for site in health_data.get('site_health', {}):
@@ -409,13 +477,28 @@ class HealthCheckView(APIView):
                 health_data['site_health'][site]['last_successful'] = ScrapingSessionSerializer(last_session).data
         # --- END FIX ---
 
+        # Determine overall status
+        overall_status = 'healthy'
+        if health_data.get('orchestrator_error') or health_data.get('failed_processing', 0) > 0:
+            overall_status = 'degraded'
+        else:
+            for site, stats in health_data.get('site_health', {}).items():
+                if stats.get('success_rate', 100) < 70: # Threshold for degraded status
+                    overall_status = 'degraded'
+                    break
+        health_data['overall_status'] = overall_status
+
         # Add some additional API-specific health checks
         health_data['api_status'] = 'healthy'
         health_data['database_connection'] = self._check_database_health()
         health_data['recent_api_activity'] = self._get_recent_activity_summary()
 
-        serializer = SystemHealthSerializer(health_data)
-        return Response(serializer.data)
+        try:
+            serializer = SystemHealthSerializer(health_data)
+            return Response(serializer.data)
+        except Exception as e:
+            self.logger.error(f"Error serializing system health data: {e}")
+            return Response({"error": "Failed to serialize health data", "details": str(e)}, status=500)
 
     def _check_database_health(self):
         try:

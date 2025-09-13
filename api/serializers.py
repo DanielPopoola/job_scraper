@@ -225,6 +225,14 @@ class LocationStatsSerializer(serializers.Serializer):
     )
 
 
+class SkillStatsSerializer(serializers.Serializer):
+    """
+    For market intelligence - skill demand statistics
+    """
+    skill = serializers.CharField()
+    count = serializers.IntegerField()
+
+
 class SystemHealthSerializer(serializers.Serializer):
     """
     For system monitoring - overall health metrics

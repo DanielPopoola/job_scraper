@@ -32,6 +32,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(('api.urls', 'api'), namespace='api')),
     path('', api_info, name='root'),
+    path('dashboard/', include('dashboard.urls')),
     path('api/', RedirectView.as_view(url='/api/v1/', permanent=False)),
     path('api-auth/', include('rest_framework.urls')),
 ]

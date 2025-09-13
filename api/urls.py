@@ -61,6 +61,11 @@ urlpatterns = [
         views.TrendsView.as_view(), 
         name='trends'
     ),
+    path(
+        'trends/skills/',
+        views.SkillTrendsView.as_view(),
+        name='skill-trends'
+    ),
     
     # =============================================================================
     # System Monitoring Endpoints

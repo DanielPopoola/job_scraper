@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Job Insights Dashboard</title>
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style type="text/tailwindcss">
+    :root {
+      --primary-50: #eff6ff;
+      --primary-100: #dbeafe;
+      --primary-500: #3b82f6;
+      --primary-600: #2563eb;
+      --primary-700: #1d4ed8;
+      --neutral-50: #f8fafc;
+      --neutral-100: #f1f5f9;
+      --neutral-200: #e2e8f0;
+      --neutral-300: #cbd5e1;
+      --neutral-400: #94a3b8;
+      --neutral-500: #64748b;
+      --neutral-700: #334155;
+      --neutral-800: #1e293b;
+      --neutral-900: #0f172a;
+      --success-500: #22c55e;
+      --danger-500: #ef4444;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--neutral-50);
+    }
+    .glassmorphism {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .active-nav {
+      color: var(--primary-600);
+      font-weight: 600;
+      position: relative;
+    }
+    .active-nav::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: var(--primary-600);
+    }
+  </style>
+</head>
+<body>
+<div class="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-800">
+<div class="flex-grow">
+<header class="sticky top-0 z-10 flex items-center justify-between whitespace-nowrap border-b border-neutral-200 bg-white/80 px-8 py-4 backdrop-blur-sm">
+<div class="flex items-center gap-3">
+<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white">
+<span class="material-symbols-outlined text-2xl">insights</span>
+</div>
+<h1 class="text-xl font-bold text-neutral-900">Job Insights</h1>
+</div>
+<nav class="hidden items-center gap-8 md:flex">
+<a class="active-nav text-sm" href="#">Dashboard</a>
+<a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#">Market Trends</a>
+<a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#">System Health</a>
+<a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#">Data Explorer</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-neutral-100 text-neutral-500 hover:bg-neutral-200 hover:text-neutral-700">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<div class="h-10 w-10 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCsNg4hv3G8iyhnIttkhPhrG96MlIY_kNVKST4Vs_W1xgpWzNXsjnueFtEjam-pQUkD8Y8JHt5nQIKcCa3jc-aPfvrkjjnbuIK2PD5BFuq8o9DfCuSABT29MGesmW5RHECAk_LnMXaDU3REglh01VfyTxLN6kEt1_MDhOal9lH6_OCWeO5lHG-hj-jwuJxfqFCZCzmQfP6tn5zHqO7ZFLFiO_fhx4bMHdgDtI7GYhN4NxA6ENTy5zybGxSWsS_F4R0eVTG8lL3byF2s");'></div>
+</div>
+</header>
+<main class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mb-8">
+<h2 class="text-3xl font-bold tracking-tight text-neutral-900">Executive Overview</h2>
+<p class="mt-1 text-base text-neutral-500">Key metrics and insights into the job market and system performance.</p>
+</div>
+<section class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+<div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
+<p class="text-sm font-medium text-neutral-500">Total Job Postings</p>
+<p class="mt-2 text-3xl font-bold text-neutral-900">{{ total_jobs|default:0 }}</p>
+<div class="mt-2 flex items-center gap-1 text-sm font-medium text-success-500">
+<span class="material-symbols-outlined text-base">arrow_upward</span>
+<span>12%</span>
+</div>
+</div>
+<div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
+<p class="text-sm font-medium text-neutral-500">Companies Tracked</p>
+<p class="mt-2 text-3xl font-bold text-neutral-900">{{ companies_tracked|default:0 }}</p>
+<div class="mt-2 flex items-center gap-1 text-sm font-medium text-success-500">
+<span class="material-symbols-outlined text-base">arrow_upward</span>
+<span>8%</span>
+</div>
+</div>
+<div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
+<p class="text-sm font-medium text-neutral-500">Locations Monitored</p>
+<p class="mt-2 text-3xl font-bold text-neutral-900">{{ locations_monitored|default:0 }}</p>
+<div class="mt-2 flex items-center gap-1 text-sm font-medium text-success-500">
+<span class="material-symbols-outlined text-base">arrow_upward</span>
+<span>5%</span>
+</div>
+</div>
+<div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
+<p class="text-sm font-medium text-neutral-500">Avg. Posting Duration</p>
+<p class="mt-2 text-3xl font-bold text-neutral-900">{{ avg_posting_duration|default:'N/A' }}</p>
+<div class="mt-2 flex items-center gap-1 text-sm font-medium text-danger-500">
+<span class="material-symbols-outlined text-base">arrow_downward</span>
+<span>3%</span>
+</div>
+</div>
+</section>
+<section class="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-2">
+<div>
+<h3 class="text-xl font-semibold text-neutral-900">Top Companies</h3>
+<div class="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+<table class="min-w-full divide-y divide-neutral-200">
+<thead class="bg-neutral-50">
+<tr>
+<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Rank</th>
+<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Company</th>
+<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Job Postings</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-neutral-200 bg-white">
+{% for company in top_companies %}
+<tr>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-500">{{ forloop.counter }}</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">{{ company.company }}</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ company.job_count }}</td>
+</tr>
+{% empty %}
+<tr>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500" colspan="3">No top companies data available.</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+<div>
+<h3 class="text-xl font-semibold text-neutral-900">Top Locations</h3>
+<div class="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+<table class="min-w-full divide-y divide-neutral-200">
+<thead class="bg-neutral-50">
+<tr>
+<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Rank</th>
+<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Location</th>
+<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Job Postings</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-neutral-200 bg-white">
+{% for location in top_locations %}
+<tr>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-500">{{ forloop.counter }}</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">{{ location.location }}</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ location.job_count }}</td>
+</tr>
+{% empty %}
+<tr>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500" colspan="3">No top locations data available.</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-3">
+<div class="lg:col-span-2">
+<h3 class="text-xl font-semibold text-neutral-900">Activity Summary</h3>
+<div class="mt-4 rounded-xl border border-neutral-200 bg-white p-6">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-base font-medium text-neutral-700">Job Postings ({{ activity_trends.total_jobs|default:0 }})</p>
+<p class="text-3xl font-bold text-neutral-900">+15%</p>
+<p class="text-sm text-neutral-500">vs. last {{ activity_trends.days_analyzed|default:30 }} days</p>
+</div>
+<div class="flex items-center gap-2 rounded-md bg-neutral-100 p-1 text-sm">
+<button class="rounded px-2 py-1 text-neutral-700">1M</button>
+<button class="rounded bg-white px-2 py-1 font-semibold text-primary-600 shadow-sm">6M</button>
+<button class="rounded px-2 py-1 text-neutral-700">1Y</button>
+<button class="rounded px-2 py-1 text-neutral-700">All</button>
+</div>
+</div>
+<div class="mt-6 h-72">
+<svg fill="none" height="100%" preserveAspectRatio="none" viewBox="0 0 500 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 280H500" stroke="#E2E8F0" stroke-width="1"></path>
+<path d="M0 210H500" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"></path>
+<path d="M0 140H500" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"></path>
+<path d="M0 70H500" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"></path>
+<path d="M0 0H500" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"></path>
+<path d="M20 230 C 80 100, 150 120, 210 180 C 270 240, 340 50, 400 80 L 480 40" stroke="#3B82F6" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+<defs>
+<linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="100%">
+<stop offset="0%" stop-color="#3B82F6" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#3B82F6" stop-opacity="0"></stop>
+</linearGradient>
+</defs>
+<path d="M20 230 C 80 100, 150 120, 210 180 C 270 240, 340 50, 400 80 L 480 40 V 280 H 20 Z" fill="url(#chartGradient)"></path>
+</svg>
+</div>
+</div>
+</div>
+<div>
+<h3 class="text-xl font-semibold text-neutral-900">System Status</h3>
+<div class="mt-4 space-y-4 rounded-xl border border-neutral-200 bg-white p-6">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined {% if overall_status == 'healthy' %}text-success-500{% else %}text-danger-500{% endif %}">{% if overall_status == 'healthy' %}check_circle{% else %}error{% endif %}</span>
+<p class="text-sm font-medium text-neutral-800">{% if overall_status == 'healthy' %}All Systems Operational{% else %}System Degraded{% endif %}</p>
+</div>
+<span class="text-xs font-semibold uppercase tracking-wider {% if overall_status == 'healthy' %}text-success-500{% else %}text-danger-500{% endif %}">{% if overall_status == 'healthy' %}Normal{% else %}Alert{% endif %}</span>
+</div>
+<div class="space-y-3 pt-2">
+<div class="flex items-center justify-between">
+<p class="text-sm text-neutral-500">LinkedIn Scraper</p>
+<div class="flex items-center gap-2">
+<p class="text-sm font-medium {% if linkedin_scraper_status == 'healthy' %}text-success-500{% elif linkedin_scraper_status == 'degraded' %}text-yellow-500{% else %}text-danger-500{% endif %}">{% if linkedin_scraper_status == 'healthy' %}Online{% elif linkedin_scraper_status == 'degraded' %}Degraded{% else %}Offline{% endif %}</p>
+<div class="h-2 w-2 rounded-full {% if linkedin_scraper_status == 'healthy' %}bg-success-500{% elif linkedin_scraper_status == 'degraded' %}bg-yellow-500{% else %}bg-danger-500{% endif %}"></div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<p class="text-sm text-neutral-500">Indeed Scraper</p>
+<div class="flex items-center gap-2">
+<p class="text-sm font-medium {% if indeed_scraper_status == 'healthy' %}text-success-500{% elif indeed_scraper_status == 'degraded' %}text-yellow-500{% else %}text-danger-500{% endif %}">{% if indeed_scraper_status == 'healthy' %}Online{% elif indeed_scraper_status == 'degraded' %}Degraded{% else %}Offline{% endif %}</p>
+<div class="h-2 w-2 rounded-full {% if indeed_scraper_status == 'healthy' %}bg-success-500{% elif indeed_scraper_status == 'degraded' %}bg-yellow-500{% else %}bg-danger-500{% endif %}"></div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<p class="text-sm text-neutral-500">Database</p>
+<div class="flex items-center gap-2">
+<p class="text-sm font-medium {% if database_status == 'connected' %}text-success-500{% else %}text-danger-500{% endif %}">{% if database_status == 'connected' %}Online{% else %}Offline{% endif %}</p>
+<div class="h-2 w-2 rounded-full {% if database_status == 'connected' %}bg-success-500{% else %}bg-danger-500{% endif %}"></div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<p class="text-sm text-neutral-500">API Service</p>
+<div class="flex items-center gap-2">
+<p class="text-sm font-medium {% if api_status == 'healthy' %}text-success-500{% else %}text-danger-500{% endif %}">{% if api_status == 'healthy' %}Online{% else %}Offline{% endif %}</p>
+<div class="h-2 w-2 rounded-full {% if api_status == 'healthy' %}bg-success-500{% else %}bg-danger-500{% endif %}"></div>
+</div>
+</div>
+</div>
+<div class="border-t border-neutral-200 pt-4">
+<p class="text-sm text-neutral-500">System Uptime</p>
+<p class="text-2xl font-bold text-neutral-900">{{ system_uptime|default:'N/A' }}</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</div>
+
+</body></html>
