@@ -76,40 +76,42 @@ def dashboard_view(request):
 def job_explorer_view(request):
     """
     Job search and browsing interface.
-    Handles search queries and filtering from user input.
+    Handles search queries and filtering from user input by calling the API.
     """
-    # Get search parameters from user
-    search_query = request.GET.get('search', '')
-    company_filter = request.GET.get('company', '')
-    days_filter = request.GET.get('days', '')
+    # Get all filter parameters from the request
     page = request.GET.get('page', '1')
-    
-    # Build parameters for jobs API
-    api_params = {}
-    if search_query:
-        api_params['search'] = search_query
-    if company_filter:
-        api_params['company_exact'] = company_filter
-    if days_filter:
-        api_params['posted_within_days'] = days_filter
+    api_params = request.GET.copy()
     api_params['page'] = page
-    api_params['ordering'] = '-first_seen'
-    
-    # Get job data
+
+    # Fetch job data from the API
     jobs_data = call_dashboard_api(request, 'job-list', api_params)
-    
-    # Get company list for filter dropdown
-    trends_data = call_dashboard_api(request, 'trends', {'metric': 'companies', 'limit': 20})
-    
+
+    # Prepare pagination URLs and info
+    if jobs_data:
+        jobs_data['number'] = int(page)
+        page_size = 20
+        jobs_data['num_pages'] = (jobs_data.get('count', 0) + page_size - 1) // page_size
+        if jobs_data.get('next'):
+            jobs_data['next_page_query'] = jobs_data['next'].split('?')[1]
+        if jobs_data.get('previous'):
+            jobs_data['previous_page_query'] = jobs_data['previous'].split('?')[1]
+
+    # Fetch data for filter dropdowns
+    companies_data = call_dashboard_api(request, 'trends', {'metric': 'companies', 'limit': 50})
+    locations_data = call_dashboard_api(request, 'trends', {'metric': 'locations', 'limit': 50})
+
     context = {
         'jobs': jobs_data,
-        'trends': trends_data,
-        'search_query': search_query,
-        'company_filter': company_filter,
-        'days_filter': days_filter,
+        'available_companies': companies_data.get('top_companies', []) if companies_data else [],
+        'available_locations': locations_data.get('top_locations', []) if locations_data else [],
+        'search_query': request.GET.get('search', ''),
+        'company_filter': request.GET.get('company', ''),
+        'location_filter': request.GET.get('location', ''),
+        'days_filter': request.GET.get('posted_within_days', ''),
+        'status_filter': request.GET.get('status', ''),
         'page_title': 'Job Explorer'
     }
-    
+
     return render(request, 'dashboard/jobs.html', context)
 
 def system_monitor_view(request):
