@@ -7,7 +7,7 @@
     </header>
     <section id="system-health">
         <h2 class="text-2xl font-semibold tracking-tight mb-4">System Health Overview</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="rounded-lg bg-white p-6 flex items-center gap-4">
                 <div class="{% if health.overall_status == 'healthy' %}bg-green-500/20{% elif health.overall_status == 'degraded' %}bg-yellow-500/20{% else %}bg-red-500/20{% endif %} p-3 rounded-full">
                     <span class="material-symbols-outlined {% if health.overall_status == 'healthy' %}text-green-400{% elif health.overall_status == 'degraded' %}text-yellow-400{% else %}text-red-400{% endif %}">power</span>
@@ -37,9 +37,9 @@
             </div>
         </div>
     </section>
-    <section class="mt-10" id="scraping-performance">
-        <h2 class="text-2xl font-semibold tracking-tight mb-4">Recent Scraping Sessions (Last 7 Days)</h2>
-        <div class="rounded-lg bg-white p-6 overflow-x-auto">
+    <section class="mt-10" id="data-quality">
+        <h2 class="text-2xl font-semibold tracking-tight mb-4">Data Quality Metrics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <table class="w-full text-left">
                 <thead class="border-b border-gray-200">
                     <tr>
