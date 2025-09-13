@@ -36,6 +36,8 @@ def dashboard_view(request):
     quick_stats_data = call_dashboard_api(request, 'quick-stats')
     trends_data = call_dashboard_api(request, 'trends', params={'metric': 'all', 'days': 30, 'limit': 5})
     health_data = call_dashboard_api(request, 'health-check')
+    skill_trends_data = call_dashboard_api(request, 'skill-trends', params={'days': 30, 'limit': 10})
+    scraping_sessions_data = call_dashboard_api(request, 'scraping-sessions', params={'limit': 5, 'ordering': '-started_at'})
 
     if quick_stats_data:
         context['total_jobs'] = quick_stats_data.get('total_jobs', 0)
@@ -48,6 +50,12 @@ def dashboard_view(request):
         context['top_locations'] = trends_data.get('top_locations', [])
         context['activity_trends'] = trends_data.get('activity_trends', {})
         context['market_summary'] = trends_data.get('market_summary', {})
+
+    if skill_trends_data:
+        context['top_skills'] = skill_trends_data
+
+    if scraping_sessions_data:
+        context['recent_scraping_sessions'] = scraping_sessions_data.get('results', [])
 
     if health_data:
         context['system_health'] = health_data
