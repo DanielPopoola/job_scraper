@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <header class="mb-8">
+        <h1 class="text-4xl font-bold tracking-tight">Operational Monitoring</h1>
+    </header>
+    <section id="system-health">
+        <h2 class="text-2xl font-semibold tracking-tight mb-4">System Health Overview</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="rounded-lg bg-white p-6 flex items-center gap-4">
+                <div class="{% if health.overall_status == 'healthy' %}bg-green-500/20{% elif health.overall_status == 'degraded' %}bg-yellow-500/20{% else %}bg-red-500/20{% endif %} p-3 rounded-full">
+                    <span class="material-symbols-outlined {% if health.overall_status == 'healthy' %}text-green-400{% elif health.overall_status == 'degraded' %}text-yellow-400{% else %}text-red-400{% endif %}">power</span>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">System Status</p>
+                    <p class="text-2xl font-bold {% if health.overall_status == 'healthy' %}text-green-500{% elif health.overall_status == 'degraded' %}text-yellow-500{% else %}text-red-500{% endif %}">{{ health.overall_status|capfirst }}</p>
+                </div>
+            </div>
+            <div class="rounded-lg bg-white p-6 flex items-center gap-4">
+                <div class="bg-blue-500/20 p-3 rounded-full">
+                    <span class="material-symbols-outlined text-blue-400">list_alt</span>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Pending Jobs</p>
+                    <p class="text-2xl font-bold">{{ stats.pending_processing }}</p>
+                </div>
+            </div>
+            <div class="rounded-lg bg-white p-6 flex items-center gap-4">
+                <div class="bg-purple-500/20 p-3 rounded-full">
+                    <span class="material-symbols-outlined text-purple-400">update</span>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Last Scrape</p>
+                    <p class="text-sm">{{ stats.last_successful_scrape.source_site }} - {{ stats.last_successful_scrape.finished_at|date:"d M, H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="mt-10" id="scraping-performance">
+        <h2 class="text-2xl font-semibold tracking-tight mb-4">Recent Scraping Sessions (Last 7 Days)</h2>
+        <div class="rounded-lg bg-white p-6 overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="border-b border-gray-200">
+                    <tr>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Site</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Started</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Duration</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Attempted</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Successful</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Success Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_sessions and recent_sessions.results %}
+                        {% for session in recent_sessions.results %}
+                            <tr class="border-b border-gray-200">
+                                <td class="px-4 py-3 text-sm">{{ session.source_site }}</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if session.status == 'completed' %}bg-green-100 text-green-800{% elif session.status == 'failed' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                        {{ session.status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-sm">{{ session.started_at|date:"d M, H:i" }}</td>
+                                <td class="px-4 py-3 text-sm">{{ session.duration_minutes }} mins</td>
+                                <td class="px-4 py-3 text-sm">{{ session.jobs_attempted }}</td>
+                                <td class="px-4 py-3 text-sm">{{ session.jobs_successful }}</td>
+                                <td class="px-4 py-3 text-sm">{{ session.success_rate_percent }}%</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-10 text-gray-500">No recent scraping sessions found.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

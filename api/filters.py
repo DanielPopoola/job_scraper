@@ -292,7 +292,7 @@ class RawJobPostingFilter(django_filters.FilterSet):
         if not value or value < 0:
             return queryset
         
-        cutoff_date = timezone.now() - timedelta(days=value)
+        cutoff_date = timezone.now() - timedelta(days=int(value))
         return queryset.filter(scraped_at__gte=cutoff_date)
 
     def filter_raw_search(self, queryset, name, value):
@@ -353,7 +353,7 @@ class ScrapingSessionFilter(django_filters.FilterSet):
         if not value or value < 0:
             return queryset
         
-        cutoff_date = timezone.now() - timedelta(days=value)
+        cutoff_date = timezone.now() - timedelta(days=int(value))
         return queryset.filter(started_at__gte=cutoff_date)
     
     def filter_min_success_rate(self, queryset, name, value):

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <header class="mb-8">
+        <h1 class="text-4xl font-bold tracking-tight">Data Quality Monitor</h1>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-8">
+            <section id="pending-jobs">
+                <h2 class="text-2xl font-semibold tracking-tight mb-4">Pending Processing</h2>
+                <div class="rounded-lg bg-white p-6 overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Site</th>
+                                <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Title</th>
+                                <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Scraped</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if pending_jobs and pending_jobs.results %}
+                                {% for job in pending_jobs.results %}
+                                    <tr class="border-b border-gray-200">
+                                        <td class="px-4 py-3 text-sm">{{ job.source_site }}</td>
+                                        <td class="px-4 py-3 text-sm">{{ job.raw_title }}</td>
+                                        <td class="px-4 py-3 text-sm">{{ job.scraped_at|date:"d M, H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-10 text-gray-500">No pending jobs.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="failed-jobs">
+                <h2 class="text-2xl font-semibold tracking-tight mb-4">Recently Failed Jobs</h2>
+                <div class="rounded-lg bg-white p-6 overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Site</th>
+                                <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Title</th>
+                                <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Error</th>
+                                <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Scraped</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if failed_jobs and failed_jobs.results %}
+                                {% for job in failed_jobs.results %}
+                                    <tr class="border-b border-gray-200">
+                                        <td class="px-4 py-3 text-sm">{{ job.source_site }}</td>
+                                        <td class="px-4 py-3 text-sm">{{ job.raw_title }}</td>
+                                        <td class="px-4 py-3 text-sm text-red-500">{{ job.processing_error }}</td>
+                                        <td class="px-4 py-3 text-sm">{{ job.scraped_at|date:"d M, H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-10 text-gray-500">No failed jobs.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <div class="space-y-8">
+            <section id="recent-sessions">
+                <h2 class="text-2xl font-semibold tracking-tight mb-4">Recent Sessions</h2>
+                <div class="rounded-lg bg-white p-6">
+                    {% if recent_sessions and recent_sessions.results %}
+                        <ul class="space-y-4">
+                            {% for session in recent_sessions.results %}
+                                <li class="border-b border-gray-200 pb-4">
+                                    <div class="flex justify-between items-center">
+                                        <p class="font-semibold">{{ session.source_site }}</p>
+                                        <span class="text-xs {% if session.status == 'completed' %}text-green-600{% elif session.status == 'failed' %}text-red-600{% else %}text-yellow-600{% endif %}">{{ session.status_display }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-500">{{ session.started_at|date:"d M, Y H:i" }}</p>
+                                    <div class="flex justify-between text-sm mt-2">
+                                        <span>Success: {{ session.success_rate_percent }}%</span>
+                                        <span>{{ session.jobs_successful }}/{{ session.jobs_attempted }} jobs</span>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-center text-gray-500">No recent sessions.</p>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

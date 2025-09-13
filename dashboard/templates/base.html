@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title|default:"Job Scraper Dashboard" }}</title>
+    <link href="https://cdn.tailwindcss.com?plugins=forms,container-queries" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <style type="text/tailwindcss">
+      :root {
+        --primary-color: #1173d4;
+      }
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="flex min-h-screen w-full font-sans">
+        <aside class="w-64 flex-shrink-0 bg-gray-800 text-white p-6">
+            <div class="flex flex-col gap-8">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[var(--primary-color)] text-3xl">
+                        analytics
+                    </span>
+                    <h1 class="text-xl font-bold">Job Scraper</h1>
+                </div>
+                <nav class="flex flex-col gap-2">
+                    <a class="flex items-center gap-3 rounded-md px-3 py-2.5 {% if request.resolver_match.view_name == 'dashboard:dashboard' %}bg-gray-700{% else %}text-gray-400 hover:bg-gray-700 hover:text-white{% endif %} transition-colors" href="{% url 'dashboard:dashboard' %}">
+                        <span class="material-symbols-outlined text-lg">dashboard</span>
+                        <span class="text-sm font-medium">Overview</span>
+                    </a>
+                    <a class="flex items-center gap-3 rounded-md px-3 py-2.5 {% if request.resolver_match.view_name == 'dashboard:job-explorer' %}bg-gray-700{% else %}text-gray-400 hover:bg-gray-700 hover:text-white{% endif %} transition-colors" href="{% url 'dashboard:job-explorer' %}">
+                        <span class="material-symbols-outlined text-lg">work</span>
+                        <span class="text-sm font-medium">Job Explorer</span>
+                    </a>
+                    <a class="flex items-center gap-3 rounded-md px-3 py-2.5 {% if request.resolver_match.view_name == 'dashboard:system-monitor' %}bg-gray-700{% else %}text-gray-400 hover:bg-gray-700 hover:text-white{% endif %} transition-colors" href="{% url 'dashboard:system-monitor' %}">
+                        <span class="material-symbols-outlined text-lg">monitoring</span>
+                        <span class="text-sm font-medium">System Monitor</span>
+                    </a>
+                    <a class="flex items-center gap-3 rounded-md px-3 py-2.5 {% if request.resolver_match.view_name == 'dashboard:market-insights' %}bg-gray-700{% else %}text-gray-400 hover:bg-gray-700 hover:text-white{% endif %} transition-colors" href="{% url 'dashboard:market-insights' %}">
+                        <span class="material-symbols-outlined text-lg">insights</span>
+                        <span class="text-sm font-medium">Market Insights</span>
+                    </a>
+                    <a class="flex items-center gap-3 rounded-md px-3 py-2.5 {% if request.resolver_match.view_name == 'dashboard:data-quality' %}bg-gray-700{% else %}text-gray-400 hover:bg-gray-700 hover:text-white{% endif %} transition-colors" href="{% url 'dashboard:data-quality' %}">
+                        <span class="material-symbols-outlined text-lg">data_quality</span>
+                        <span class="text-sm font-medium">Data Quality</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+        <main class="flex-1 p-8">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+</body>
+</html>

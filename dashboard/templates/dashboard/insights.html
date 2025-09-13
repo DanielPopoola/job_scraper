@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="layout-content-container flex flex-col w-full max-w-7xl">
+    <div class="flex flex-wrap justify-between items-center gap-4 pb-8">
+        <div class="flex flex-col gap-2">
+            <h1 class="text-slate-900 text-4xl font-bold leading-tight tracking-tight">Analytics & Trends</h1>
+            <p class="text-gray-500 text-base font-normal leading-normal">
+                Explore detailed insights into job market trends, company hiring patterns, and geographic distributions.
+            </p>
+        </div>
+        <button class="flex items-center gap-2 min-w-[84px] cursor-pointer justify-center overflow-hidden rounded-md h-10 px-4 bg-[var(--primary-color)] text-white text-sm font-semibold leading-normal w-fit">
+            <span class="material-symbols-outlined">download</span>
+            <span>Export Data</span>
+        </button>
+    </div>
+    <div class="flex flex-col gap-8">
+        <div class="bg-white rounded-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-slate-800 text-lg font-semibold leading-tight">Company Analysis (Last 30 Days)</h2>
+            </div>
+            <div class="p-6 @container">
+                <div class="overflow-x-auto rounded-md border border-gray-200 bg-white">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-slate-800 text-sm font-medium">Company</th>
+                                <th class="px-4 py-3 text-slate-800 text-sm font-medium">Job Postings</th>
+                                <th class="px-4 py-3 text-slate-800 text-sm font-medium">Avg. Days Active</th>
+                                <th class="px-4 py-3 text-slate-800 text-sm font-medium">Latest Posting</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% if trends_monthly and trends_monthly.top_companies %}
+                                {% for company in trends_monthly.top_companies %}
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-800 text-sm font-normal">{{ company.company }}</td>
+                                        <td class="px-4 py-3 text-gray-600 text-sm font-normal">{{ company.job_count }}</td>
+                                        <td class="px-4 py-3 text-gray-600 text-sm font-normal">{{ company.avg_days_active|floatformat:1 }}</td>
+                                        <td class="px-4 py-3 text-sm font-normal">{{ company.latest_posting|date:"d M, Y" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-10 text-gray-500">No company data available.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-slate-800 text-lg font-semibold leading-tight">Geographic Trends (Last 30 Days)</h2>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto rounded-md border border-gray-200 bg-white">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-slate-800 text-sm font-medium">Location</th>
+                                <th class="px-4 py-3 text-slate-800 text-sm font-medium">Job Postings</th>
+                                <th class="px-4 py-3 text-slate-800 text-sm font-medium">Top Companies</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% if trends_monthly and trends_monthly.top_locations %}
+                                {% for location in trends_monthly.top_locations %}
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-800 text-sm font-normal">{{ location.location }}</td>
+                                        <td class="px-4 py-3 text-gray-600 text-sm font-normal">{{ location.job_count }}</td>
+                                        <td class="px-4 py-3 text-gray-600 text-sm font-normal">{{ location.top_companies|join:", " }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-10 text-gray-500">No location data available.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-slate-800 text-lg font-semibold leading-tight">Temporal Analysis</h2>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-500">Note: The charts below are placeholders. The current API does not provide historical data needed for these visualizations.</p>
+                <div class="py-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex flex-col gap-4 rounded-md border border-gray-200 bg-gray-50 p-6">
+                            <p class="text-slate-800 text-base font-medium leading-normal">Job Postings (30d vs 90d)</p>
+                            <div class="flex items-baseline gap-2">
+                                <p class="text-slate-800 text-4xl font-bold">{{ trends_monthly.activity_trends.total_jobs }}</p>
+                                <!-- Placeholder for trend calculation -->
+                            </div>
+                            <p class="text-gray-600 text-sm font-normal">vs. last 90 days</p>
+                        </div>
+                        <div class="flex flex-col gap-4 rounded-md border border-gray-200 bg-gray-50 p-6">
+                            <p class="text-slate-800 text-base font-medium leading-normal">Avg. Jobs Per Day (30d)</p>
+                            <div class="flex items-baseline gap-2">
+                                <p class="text-slate-800 text-4xl font-bold">{{ trends_monthly.activity_trends.avg_jobs_per_day }}</p>
+                            </div>
+                            <p class="text-gray-600 text-sm font-normal">in the last 30 days</p>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <div class="flex flex-col gap-8 py-4">
+                            <svg fill="none" height="200" preserveAspectRatio="none" viewBox="0 0 700 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M0 159.5C29.1667 159.5 29.1667 85.5 58.3333 85.5C87.5 85.5 87.5 111.5 116.667 111.5C145.833 111.5 145.833 147.5 175 147.5C204.167 147.5 204.167 95.5 233.333 95.5C262.5 95.5 262.5 119.5 291.667 119.5C320.833 119.5 320.833 175.5 350 175.5C379.167 175.5 379.167 43.5 408.333 43.5C437.5 43.5 437.5 131.5 466.667 131.5C495.833 131.5 495.833 183.5 525 183.5C554.167 183.5 554.167 87.5 583.333 87.5C612.5 87.5 612.5 111.5 641.667 111.5C670.833 111.5 670.833 147.5 700 147.5" stroke="#1173d4" stroke-linecap="round" stroke-width="3"></path>
+                                <path d="M0 159.5C29.1667 159.5 29.1667 85.5 58.3333 85.5C87.5 85.5 87.5 111.5 116.667 111.5C145.833 111.5 145.833 147.5 175 147.5C204.167 147.5 204.167 95.5 233.333 95.5C262.5 95.5 262.5 119.5 291.667 119.5C320.833 119.5 320.833 175.5 350 175.5C379.167 175.5 379.167 43.5 408.333 43.5C437.5 43.5 437.5 131.5 466.667 131.5C495.833 131.5 495.833 183.5 525 183.5C554.167 183.5 554.167 87.5 583.333 87.5C612.5 87.5 612.5 111.5 641.667 111.5C670.833 111.5 670.833 147.5 700 147.5V200H0V159.5Z" fill="url(#paint0_linear_1131_5935_improved)"></path>
+                                <defs>
+                                    <linearGradient gradientUnits="userSpaceOnUse" id="paint0_linear_1131_5935_improved" x1="350" x2="350" y1="43.5" y2="200">
+                                        <stop stop-color="#1173d4" stop-opacity="0.2"></stop>
+                                        <stop offset="1" stop-color="#1173d4" stop-opacity="0"></stop>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="flex justify-between text-xs text-gray-400">
+                                <span>Jan</span>
+                                <span>Feb</span>
+                                <span>Mar</span>
+                                <span>Apr</span>
+                                <span>May</span>
+                                <span>Jun</span>
+                                <span>Jul</span>
+                                <span>Aug</span>
+                                <span>Sep</span>
+                                <span>Oct</span>
+                                <span>Nov</span>
+                                <span>Dec</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
