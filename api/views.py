@@ -18,6 +18,7 @@ from scraper.models import Job, JobMapping, RawJobPosting, ScrapingSession
 from scraper.orchestrator import JobScrapingOrchestrator
 
 from .filters import JobFilter, RawJobPostingFilter, ScrapingSessionFilter
+from .pagination import CustomPagination
 from .serializers import (
     CompanyStatsSerializer,
     JobSerializer,
@@ -252,6 +253,7 @@ class ScrapingSessionListView(generics.ListAPIView):
     serializer_class = ScrapingSessionSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = ScrapingSessionFilter
+    pagination_class = CustomPagination
 
 # =============================================================================
 # Market Intelligence / Analytics Views
@@ -398,13 +400,13 @@ class SkillTrendsView(APIView):
     """
     # A predefined list of skills to search for. This could be expanded or moved to a model.
     SKILL_KEYWORDS = [
-        'Python', 'JavaScript', 'Java', 'C#', 'C++', 'Go', 'Rust', 'PHP', 'TypeScript',
-        'React', 'Angular', 'Vue', 'Node.js', 'Django', 'Flask', 'Spring', '.NET',
+        'Python', 'JavaScript', 'Java', 'C#', 'C++', 'Go', 'Rust', 'PHP', 'TypeScript', 'Communication',
+        'Problem Solving', 'Presentation', 'React', 'Angular', 'Vue', 'Node.js', 'Django', 'Flask', 'Spring', '.NET', 'SpringBoot', 'FastAPI',
         'SQL', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'Cassandra',
         'AWS', 'Azure', 'Google Cloud', 'GCP', 'Docker', 'Kubernetes', 'Terraform',
         'Linux', 'Git', 'CI/CD', 'Agile', 'Scrum',
         'Machine Learning', 'Data Science', 'Pandas', 'NumPy', 'TensorFlow', 'PyTorch',
-        'AI', 'Big Data', 'Spark', 'Hadoop'
+        'AI', 'Big Data', 'Spark', 'Hadoop',
     ]
 
     @extend_schema(
@@ -493,11 +495,12 @@ class HealthCheckView(APIView):
         health_data['database_connection'] = self._check_database_health()
         health_data['recent_api_activity'] = self._get_recent_activity_summary()
 
+
         try:
             serializer = SystemHealthSerializer(health_data)
             return Response(serializer.data)
         except Exception as e:
-            self.logger.error(f"Error serializing system health data: {e}")
+            logger.error(f"Error serializing system health data: {e}")
             return Response({"error": "Failed to serialize health data", "details": str(e)}, status=500)
 
     def _check_database_health(self):

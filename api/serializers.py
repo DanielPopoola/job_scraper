@@ -237,8 +237,11 @@ class SystemHealthSerializer(serializers.Serializer):
     """
     For system monitoring - overall health metrics
     """
+    overall_status = serializers.CharField()
+    api_status = serializers.CharField()
+    database_connection = serializers.CharField()
     timestamp = serializers.DateTimeField()
-    
+
     # Processing queue health
     pending_processing = serializers.IntegerField()
     failed_processing = serializers.IntegerField()
