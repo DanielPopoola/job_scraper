@@ -337,6 +337,14 @@ class ScrapingSessionFilter(django_filters.FilterSet):
         label='Minimum success rate (%)'
     )
     
+    ordering = django_filters.OrderingFilter(
+        fields=(
+            ('started_at', 'started_at'),
+            ('ended_at', 'ended_at'),
+            ('status', 'status'),
+        ),
+    )
+
     class Meta:
         model = ScrapingSession
         fields = []
