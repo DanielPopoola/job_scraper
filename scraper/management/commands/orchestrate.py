@@ -158,7 +158,7 @@ class Command(BaseCommand):
         tasks = []
         priority = 1
 
-        for search_term in options['search_term']:
+        for search_term in options['search_terms']:
             for site in options['sites']:
                 task = ScrapingTask(
                     site=site,

@@ -1,290 +1,469 @@
 <!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Job Insights Dashboard</title>
-<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-<style type="text/tailwindcss">
-    :root {
-      --primary-50: #eff6ff;
-      --primary-100: #dbeafe;
-      --primary-500: #3b82f6;
-      --primary-600: #2563eb;
-      --primary-700: #1d4ed8;
-      --neutral-50: #f8fafc;
-      --neutral-100: #f1f5f9;
-      --neutral-200: #e2e8f0;
-      --neutral-300: #cbd5e1;
-      --neutral-400: #94a3b8;
-      --neutral-500: #64748b;
-      --neutral-700: #334155;
-      --neutral-800: #1e293b;
-      --neutral-900: #0f172a;
-      --success-500: #22c55e;
-      --danger-500: #ef4444;
-    }
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--neutral-50);
-    }
-    .glassmorphism {
-      background: rgba(255, 255, 255, 0.6);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-    .active-nav {
-      color: var(--primary-600);
-      font-weight: 600;
-      position: relative;
-    }
-    .active-nav::after {
-        content: '';
-        position: absolute;
-        bottom: -8px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background-color: var(--primary-600);
-    }
-  </style>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Job Insights Dashboard</title>
+    <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style type="text/tailwindcss">
+        :root {
+            --primary-50: #eff6ff;
+            --primary-100: #dbeafe;
+            --primary-500: #3b82f6;
+            --primary-600: #2563eb;
+            --primary-700: #1d4ed8;
+            --neutral-50: #f8fafc;
+            --neutral-100: #f1f5f9;
+            --neutral-200: #e2e8f0;
+            --neutral-300: #cbd5e1;
+            --neutral-400: #94a3b8;
+            --neutral-500: #64748b;
+            --neutral-700: #334155;
+            --neutral-800: #1e293b;
+            --neutral-900: #0f172a;
+            --success-500: #22c55e;
+            --warning-500: #f59e0b;
+            --danger-500: #ef4444;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--neutral-50);
+        }
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .active-nav {
+            color: var(--primary-600);
+            font-weight: 600;
+            position: relative;
+        }
+        .active-nav::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--primary-600);
+        }
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        .status-healthy { background-color: var(--success-500); }
+        .status-degraded { background-color: var(--warning-500); }
+        .status-offline { background-color: var(--danger-500); }
+    </style>
 </head>
 <body>
-<div class="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-800">
-<div class="flex-grow">
-<header class="sticky top-0 z-10 flex items-center justify-between whitespace-nowrap border-b border-neutral-200 bg-white/80 px-8 py-4 backdrop-blur-sm">
-<div class="flex items-center gap-3">
-<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white">
-<span class="material-symbols-outlined text-2xl">insights</span>
-</div>
-<h1 class="text-xl font-bold text-neutral-900">Job Insights</h1>
-</div>
-<nav class="hidden items-center gap-8 md:flex">
-<a class="active-nav text-sm" href="#">Dashboard</a>
-<a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#market-trends">Market Trends</a>
-<a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#scraping-activity">Scraping Activity</a>
-<a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#system-status">System Health</a>
-<a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#">Data Explorer</a>
-</nav>
-<div class="flex items-center gap-4">
-<button class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-neutral-100 text-neutral-500 hover:bg-neutral-200 hover:text-neutral-700">
-<span class="material-symbols-outlined text-xl">notifications</span>
-</button>
-<div class="h-10 w-10 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCsNg4hv3G8iyhnIttkhPhrG96MlIY_kNVKST4Vs_W1xgpWzNXsjnueFtEjam-pQUkD8Y8JHt5nQIKcCa3jc-aPfvrkjjnbuIK2PD5BFuq8o9DfCuSABT29MGesmW5RHECAk_LnMXaDU3REglh01VfyTxLN6kEt1_MDhOal9lH6_OCWeO5lHG-hj-jwuJxfqFCZCzmQfP6tn5zHqO7ZFLFiO_fhx4bMHdgDtI7GYhN4NxA6ENTy5zybGxSWsS_F4R0eVTG8lL3byF2s");'></div>
-</div>
-</header>
-<main class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-<div class="mb-8">
-<h2 class="text-3xl font-bold tracking-tight text-neutral-900">Executive Overview</h2>
-<p class="mt-1 text-base text-neutral-500">Key metrics and insights into the job market and system performance.</p>
-</div>
-<section class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-<div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
-<p class="text-sm font-medium text-neutral-500">Total Job Postings</p>
-<p class="mt-2 text-3xl font-bold text-neutral-900">{{ total_jobs|default:0 }}</p>
+    <div class="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-800">
+        <div class="flex-grow">
+            <!-- Header (keeping your existing header) -->
+            <header class="sticky top-0 z-10 flex items-center justify-between whitespace-nowrap border-b border-neutral-200 bg-white/80 px-8 py-4 backdrop-blur-sm">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white">
+                        <span class="material-symbols-outlined text-2xl">insights</span>
+                    </div>
+                    <h1 class="text-xl font-bold text-neutral-900">Job Insights</h1>
+                </div>
+                <nav class="hidden items-center gap-8 md:flex">
+                    <a class="active-nav text-sm" href="#">Dashboard</a>
+                    <a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#market-trends">Market Trends</a>
+                    <a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#scraping-activity">Scraping Activity</a>
+                    <a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#system-status">System Health</a>
+                    <a class="text-sm font-medium text-neutral-500 hover:text-primary-600" href="#">Data Explorer</a>
+                </nav>
+                <div class="flex items-center gap-4">
+                    <button class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-neutral-100 text-neutral-500 hover:bg-neutral-200 hover:text-neutral-700">
+                        <span class="material-symbols-outlined text-xl">notifications</span>
+                    </button>
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-r from-primary-400 to-primary-600"></div>
+                </div>
+            </header>
 
-</div>
-<div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
-<p class="text-sm font-medium text-neutral-500">Companies Tracked</p>
-<p class="mt-2 text-3xl font-bold text-neutral-900">{{ companies_tracked|default:0 }}</p>
+            <main class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                <!-- Executive Overview Section -->
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold tracking-tight text-neutral-900">Executive Overview</h2>
+                    <p class="mt-1 text-base text-neutral-500">Key metrics and insights into the job market and system performance.</p>
+                </div>
 
-</div>
-<div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
-<p class="text-sm font-medium text-neutral-500">Locations Monitored</p>
-<p class="mt-2 text-3xl font-bold text-neutral-900">{{ locations_monitored|default:0 }}</p>
+                <!-- KPI Cards -->
+                <section class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-10">
+                    <div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-neutral-500">Total Job Postings</p>
+                                <p class="mt-2 text-3xl font-bold text-neutral-900">{{ total_jobs|default:0 }}</p>
+                            </div>
+                            <span class="material-symbols-outlined text-primary-500 text-3xl">work</span>
+                        </div>
+                    </div>
+                    <div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-neutral-500">Companies Tracked</p>
+                                <p class="mt-2 text-3xl font-bold text-neutral-900">{{ companies_tracked|default:0 }}</p>
+                            </div>
+                            <span class="material-symbols-outlined text-primary-500 text-3xl">business</span>
+                        </div>
+                    </div>
+                    <div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-neutral-500">Locations Monitored</p>
+                                <p class="mt-2 text-3xl font-bold text-neutral-900">{{ locations_monitored|default:0 }}</p>
+                            </div>
+                            <span class="material-symbols-outlined text-primary-500 text-3xl">location_on</span>
+                        </div>
+                    </div>
+                    <div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-neutral-500">Daily Job Volume</p>
+                                <p class="mt-2 text-3xl font-bold text-neutral-900">
+                                    {% if activity_trends.avg_jobs_per_day %}{{ activity_trends.avg_jobs_per_day }}{% else %}N/A{% endif %}
+                                </p>
+                            </div>
+                            <span class="material-symbols-outlined text-primary-500 text-3xl">trending_up</span>
+                        </div>
+                    </div>
+                </section>
 
-</div>
-<div class="glassmorphism rounded-xl border border-neutral-200/50 p-6 shadow-sm">
-<p class="text-sm font-medium text-neutral-500">Avg. Posting Duration</p>
-<p class="mt-2 text-3xl font-bold text-neutral-900">{{ avg_posting_duration|default:'N/A' }}</p>
+                <!-- Market Intelligence Section -->
+                <section class="mb-10" id="market-trends">
+                    <h2 class="text-2xl font-bold tracking-tight text-neutral-900 mb-6">Market Intelligence</h2>
+                    
+                    <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                        <!-- Top Companies -->
+                        <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
+                                <h3 class="text-lg font-semibold text-neutral-900">Top Hiring Companies</h3>
+                                <p class="text-sm text-neutral-500 mt-1">Last 30 days</p>
+                            </div>
+                            <div class="divide-y divide-neutral-200">
+                                {% for company in top_companies %}
+                                <div class="px-6 py-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium text-neutral-900">{{ company.company }}</p>
+                                        <p class="text-sm text-neutral-500">{{ company.job_count }} posting{{ company.job_count|pluralize }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="w-16 bg-neutral-100 rounded-full h-2">
+                                            <div class="bg-primary-500 h-2 rounded-full" style="width: {% widthratio company.job_count top_companies.0.job_count 100 %}%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="px-6 py-8 text-center text-neutral-500">
+                                    <span class="material-symbols-outlined text-4xl mb-2 block">business</span>
+                                    <p>No company data available</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
 
-</div>
-</section>
-<section class="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-2">
-<div>
-<h3 class="text-xl font-semibold text-neutral-900">Top Companies</h3>
-<div class="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
-<table class="min-w-full divide-y divide-neutral-200">
-<thead class="bg-neutral-50">
-<tr>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Rank</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Company</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Job Postings</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-neutral-200 bg-white">
-{% for company in top_companies %}
-<tr>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-500">{{ forloop.counter }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">{{ company.company }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ company.job_count }}</td>
-</tr>
-{% empty %}
-<tr>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500" colspan="3">No top companies data available.</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-</div>
-</div>
-<div>
-<h3 class="text-xl font-semibold text-neutral-900">Top Locations</h3>
-<div class="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
-<table class="min-w-full divide-y divide-neutral-200">
-<thead class="bg-neutral-50">
-<tr>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Rank</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Location</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Job Postings</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-neutral-200 bg-white">
-{% for location in top_locations %}
-<tr>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-500">{{ forloop.counter }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">{{ location.location }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ location.job_count }}</td>
-</tr>
-{% empty %}
-<tr>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500" colspan="3">No top locations data available.</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-</div>
-</div>
-</section>
+                        <!-- Top Locations -->
+                        <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
+                                <h3 class="text-lg font-semibold text-neutral-900">Hottest Markets</h3>
+                                <p class="text-sm text-neutral-500 mt-1">By job volume</p>
+                            </div>
+                            <div class="divide-y divide-neutral-200">
+                                {% for location in top_locations %}
+                                <div class="px-6 py-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <p class="font-medium text-neutral-900">{{ location.location }}</p>
+                                        <span class="text-sm font-medium text-primary-600">{{ location.job_count }}</span>
+                                    </div>
+                                    {% if location.top_companies %}
+                                    <p class="text-xs text-neutral-500">
+                                        Top employers: {% for company in location.top_companies %}{{ company }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                {% empty %}
+                                <div class="px-6 py-8 text-center text-neutral-500">
+                                    <span class="material-symbols-outlined text-4xl mb-2 block">location_on</span>
+                                    <p>No location data available</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
 
-<section class="mt-10">
-<h2 class="text-3xl font-bold tracking-tight text-neutral-900" id="market-trends">Market Trends</h2>
-<p class="mt-1 text-base text-neutral-500">Deeper insights into job market dynamics and skill demand.</p>
-<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-<div>
-<h3 class="text-xl font-semibold text-neutral-900">Top Skills</h3>
-<div class="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
-<table class="min-w-full divide-y divide-neutral-200">
-<thead class="bg-neutral-50">
-<tr>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Rank</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Skill</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Job Mentions</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-neutral-200 bg-white">
-{% for skill in top_skills %}
-<tr>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-500">{{ forloop.counter }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">{{ skill.skill }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ skill.count }}</td>
-</tr>
-{% empty %}
-<tr>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500" colspan="3">No top skills data available.</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-</div>
-</div>
+                        <!-- Top Skills -->
+                        <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
+                                <h3 class="text-lg font-semibold text-neutral-900">In-Demand Skills</h3>
+                                <p class="text-sm text-neutral-500 mt-1">Most mentioned</p>
+                            </div>
+                            <div class="p-6">
+                                {% for skill in top_skills %}
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-sm font-medium text-neutral-700">{{ skill.skill }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-16 bg-neutral-100 rounded-full h-2">
+                                            <div class="bg-success-500 h-2 rounded-full" style="width: {% widthratio skill.count top_skills.0.count 100 %}%"></div>
+                                        </div>
+                                        <span class="text-xs text-neutral-500 min-w-[2rem]">{{ skill.count }}</span>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="py-8 text-center text-neutral-500">
+                                    <span class="material-symbols-outlined text-4xl mb-2 block">psychology</span>
+                                    <p>No skills data available</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
 
-<section class="mt-10">
-<h2 class="text-3xl font-bold tracking-tight text-neutral-900" id="scraping-activity">Scraping Activity</h2>
-<p class="mt-1 text-base text-neutral-500">Monitor recent scraping sessions and processing backlogs.</p>
-<div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-<div>
-<h3 class="text-xl font-semibold text-neutral-900">Recent Scraping Sessions</h3>
-<div class="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
-<table class="min-w-full divide-y divide-neutral-200">
-<thead class="bg-neutral-50">
-<tr>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Site</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Search Term</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Status</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Jobs Scraped</th>
-<th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500" scope="col">Duration (min)</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-neutral-200 bg-white">
-{% for session in recent_scraping_sessions %}
-<tr>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">{{ session.source_site|capfirst }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ session.search_term }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm {% if session.status == 'completed' %}text-success-500{% elif session.status == 'failed' %}text-danger-500{% else %}text-neutral-500{% endif %}">{{ session.status_display }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ session.jobs_successful }}</td>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ session.duration_minutes|floatformat:2 }}</td>
-</tr>
-{% empty %}
-<tr>
-<td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500" colspan="5">No recent scraping sessions available.</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-</div>
-</div>
-<div>
-<h3 class="text-xl font-semibold text-neutral-900">Processing Backlog</h3>
-<div class="mt-4 space-y-4 rounded-xl border border-neutral-200 bg-white p-6">
-<div class="flex items-center justify-between">
-<p class="text-sm text-neutral-500">Pending Raw Postings</p>
-<p class="text-lg font-bold text-neutral-900">{{ system_health.pending_processing|default:0 }}</p>
-</div>
-<div class="flex items-center justify-between">
-<p class="text-sm text-neutral-500">Failed Raw Postings</p>
-<p class="text-lg font-bold text-neutral-900">{{ system_health.failed_processing|default:0 }}</p>
-</div>
-</div>
-</div>
-</section>
+                    <!-- Market Activity Summary -->
+                    {% if activity_trends %}
+                    <div class="mt-8 bg-gradient-to-r from-primary-50 to-primary-100 rounded-xl p-6 border border-primary-200">
+                        <h3 class="text-lg font-semibold text-primary-900 mb-4">Market Activity Summary</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-primary-700">{{ activity_trends.total_jobs|default:0 }}</p>
+                                <p class="text-sm text-primary-600">Jobs in last {{ activity_trends.days_analyzed }} days</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-primary-700">{{ activity_trends.avg_jobs_per_day|floatformat:1|default:0 }}</p>
+                                <p class="text-sm text-primary-600">Average jobs per day</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-primary-700">{{ market_summary.unique_companies|default:0 }}</p>
+                                <p class="text-sm text-primary-600">Active companies</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </section>
 
+                <!-- Scraping Activity Section -->
+                <section class="mb-10" id="scraping-activity">
+                    <h2 class="text-2xl font-bold tracking-tight text-neutral-900 mb-6">Scraping Operations</h2>
+                    
+                    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                        <!-- Recent Scraping Sessions -->
+                        <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
+                                <h3 class="text-lg font-semibold text-neutral-900">Recent Sessions</h3>
+                                <p class="text-sm text-neutral-500 mt-1">Latest scraping activity</p>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-neutral-200">
+                                    <thead class="bg-neutral-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">Site</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">Status</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">Jobs</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">Duration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-neutral-200">
+                                        {% for session in recent_scraping_sessions %}
+                                        <tr>
+                                            <td class="px-4 py-3 text-sm font-medium text-neutral-800">
+                                                {{ session.source_site|capfirst }}
+                                            </td>
+                                            <td class="px-4 py-3 text-sm">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                                    {% if session.status == 'completed' %}bg-success-100 text-success-800
+                                                    {% elif session.status == 'failed' %}bg-red-100 text-red-800
+                                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                                    {{ session.status_display }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">{{ session.jobs_successful }}</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">{{ session.duration_minutes|floatformat:1 }}m</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td class="px-4 py-8 text-center text-neutral-500" colspan="4">
+                                                <span class="material-symbols-outlined text-4xl mb-2 block">sync</span>
+                                                <p>No recent sessions</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
 
+                        <!-- Processing Status -->
+                        <div class="bg-white rounded-xl border border-neutral-200">
+                            <div class="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
+                                <h3 class="text-lg font-semibold text-neutral-900">Processing Pipeline</h3>
+                                <p class="text-sm text-neutral-500 mt-1">Data processing status</p>
+                            </div>
+                            <div class="p-6 space-y-6">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-yellow-600">pending</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-neutral-900">Pending Processing</p>
+                                            <p class="text-sm text-neutral-500">Raw postings awaiting processing</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-2xl font-bold text-yellow-600">{{ system_health.pending_processing|default:0 }}</span>
+                                </div>
 
-<div>
-<h3 class="text-xl font-semibold text-neutral-900">System Status</h3>
-<div class="mt-4 space-y-4 rounded-xl border border-neutral-200 bg-white p-6">
-<div class="flex items-center justify-between">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined {% if overall_status == 'healthy' %}text-success-500{% else %}text-danger-500{% endif %}">{% if overall_status == 'healthy' %}check_circle{% else %}error{% endif %}</span>
-<p class="text-sm font-medium text-neutral-800">{% if overall_status == 'healthy' %}All Systems Operational{% else %}System Degraded{% endif %}</p>
-</div>
-<span class="text-xs font-semibold uppercase tracking-wider {% if overall_status == 'healthy' %}text-success-500{% else %}text-danger-500{% endif %}">{% if overall_status == 'healthy' %}Normal{% else %}Alert{% endif %}</span>
-</div>
-<div class="space-y-3 pt-2">
-<div class="flex items-center justify-between">
-<p class="text-sm text-neutral-500">LinkedIn Scraper</p>
-<div class="flex items-center gap-2">
-<p class="text-sm font-medium {% if linkedin_scraper_status == 'healthy' %}text-success-500{% elif linkedin_scraper_status == 'degraded' %}text-yellow-500{% else %}text-danger-500{% endif %}">{% if linkedin_scraper_status == 'healthy' %}Online{% elif linkedin_scraper_status == 'degraded' %}Degraded{% else %}Offline{% endif %}</p>
-<div class="h-2 w-2 rounded-full {% if linkedin_scraper_status == 'healthy' %}bg-success-500{% elif linkedin_scraper_status == 'degraded' %}bg-yellow-500{% else %}bg-danger-500{% endif %}"></div>
-</div>
-</div>
-<div class="flex items-center justify-between">
-<p class="text-sm text-neutral-500">Indeed Scraper</p>
-<div class="flex items-center gap-2">
-<p class="text-sm font-medium {% if indeed_scraper_status == 'healthy' %}text-success-500{% elif indeed_scraper_status == 'degraded' %}text-yellow-500{% else %}text-danger-500{% endif %}">{% if indeed_scraper_status == 'healthy' %}Online{% elif indeed_scraper_status == 'degraded' %}Degraded{% else %}Offline{% endif %}</p>
-<div class="h-2 w-2 rounded-full {% if indeed_scraper_status == 'healthy' %}bg-success-500{% elif indeed_scraper_status == 'degraded' %}bg-yellow-500{% else %}bg-danger-500{% endif %}"></div>
-</div>
-</div>
-<div class="flex items-center justify-between">
-<p class="text-sm text-neutral-500">Database</p>
-<div class="flex items-center gap-2">
-<p class="text-sm font-medium {% if database_status == 'connected' %}text-success-500{% else %}text-danger-500{% endif %}">{% if database_status == 'connected' %}Online{% else %}Offline{% endif %}</p>
-<div class="h-2 w-2 rounded-full {% if database_status == 'connected' %}bg-success-500{% else %}bg-danger-500{% endif %}"></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
-</main>
-</div>
-</div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-red-600">error</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-neutral-900">Failed Processing</p>
+                                            <p class="text-sm text-neutral-500">Jobs that failed to process</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-2xl font-bold text-red-600">{{ system_health.failed_processing|default:0 }}</span>
+                                </div>
 
-</body></html>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-success-600">check_circle</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-neutral-900">Successfully Processed</p>
+                                            <p class="text-sm text-neutral-500">Jobs in canonical database</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-2xl font-bold text-success-600">{{ total_jobs|default:0 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- System Health Section -->
+                <section class="mb-10" id="system-status">
+                    <h2 class="text-2xl font-bold tracking-tight text-neutral-900 mb-6">System Health</h2>
+                    
+                    <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-neutral-900">System Components</h3>
+                                <div class="flex items-center gap-2">
+                                    <span class="status-indicator {% if overall_status == 'healthy' %}status-healthy{% elif overall_status == 'degraded' %}status-degraded{% else %}status-offline{% endif %}"></span>
+                                    <span class="text-sm font-medium 
+                                        {% if overall_status == 'healthy' %}text-success-600{% elif overall_status == 'degraded' %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                        {% if overall_status == 'healthy' %}All Systems Operational
+                                        {% elif overall_status == 'degraded' %}System Degraded
+                                        {% else %}System Offline{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="divide-y divide-neutral-200">
+                            <div class="px-6 py-4 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-blue-500">linked_services</span>
+                                    <div>
+                                        <p class="font-medium text-neutral-900">LinkedIn Scraper</p>
+                                        <p class="text-sm text-neutral-500">Job posting collection</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium 
+                                        {% if linkedin_scraper_status == 'healthy' %}text-success-600{% elif linkedin_scraper_status == 'degraded' %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                        {% if linkedin_scraper_status == 'healthy' %}Online{% elif linkedin_scraper_status == 'degraded' %}Degraded{% else %}Offline{% endif %}
+                                    </span>
+                                    <span class="status-indicator {% if linkedin_scraper_status == 'healthy' %}status-healthy{% elif linkedin_scraper_status == 'degraded' %}status-degraded{% else %}status-offline{% endif %}"></span>
+                                </div>
+                            </div>
+
+                            <div class="px-6 py-4 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-blue-600">search</span>
+                                    <div>
+                                        <p class="font-medium text-neutral-900">Indeed Scraper</p>
+                                        <p class="text-sm text-neutral-500">Job posting collection</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium 
+                                        {% if indeed_scraper_status == 'healthy' %}text-success-600{% elif indeed_scraper_status == 'degraded' %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                        {% if indeed_scraper_status == 'healthy' %}Online{% elif indeed_scraper_status == 'degraded' %}Degraded{% else %}Offline{% endif %}
+                                    </span>
+                                    <span class="status-indicator {% if indeed_scraper_status == 'healthy' %}status-healthy{% elif indeed_scraper_status == 'degraded' %}status-degraded{% else %}status-offline{% endif %}"></span>
+                                </div>
+                            </div>
+
+                            <div class="px-6 py-4 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-green-500">database</span>
+                                    <div>
+                                        <p class="font-medium text-neutral-900">Database</p>
+                                        <p class="text-sm text-neutral-500">Data storage and retrieval</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium {% if database_status == 'connected' %}text-success-600{% else %}text-red-600{% endif %}">
+                                        {% if database_status == 'connected' %}Online{% else %}Offline{% endif %}
+                                    </span>
+                                    <span class="status-indicator {% if database_status == 'connected' %}status-healthy{% else %}status-offline{% endif %}"></span>
+                                </div>
+                            </div>
+
+                            <div class="px-6 py-4 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-purple-500">api</span>
+                                    <div>
+                                        <p class="font-medium text-neutral-900">REST API</p>
+                                        <p class="text-sm text-neutral-500">Data access interface</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium {% if api_status == 'healthy' %}text-success-600{% else %}text-red-600{% endif %}">
+                                        {% if api_status == 'healthy' %}Online{% else %}Offline{% endif %}
+                                    </span>
+                                    <span class="status-indicator {% if api_status == 'healthy' %}status-healthy{% else %}status-offline{% endif %}"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh functionality (optional)
+        function refreshDashboard() {
+            window.location.reload();
+        }
+        
+        // Refresh every 5 minutes
+        setInterval(refreshDashboard, 5 * 60 * 1000);
+        
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
