@@ -37,7 +37,7 @@ def dashboard_view(request):
     trends_data = call_dashboard_api(request, 'trends', params={'metric': 'all', 'days': 30, 'limit': 5})
     health_data = call_dashboard_api(request, 'health-check')
     skill_trends_data = call_dashboard_api(request, 'skill-trends', params={'days': 30, 'limit': 10})
-    scraping_sessions_data = call_dashboard_api(request, 'scraping-sessions', params={'limit': 5, 'ordering': '-started_at'})
+    scraping_sessions_data = call_dashboard_api(request, 'scraping-session-list', params={'limit': 5, 'ordering': '-started_at'})
 
     if quick_stats_data:
         context['total_jobs'] = quick_stats_data.get('total_jobs', 0)
@@ -69,6 +69,102 @@ def dashboard_view(request):
 
         context['database_status'] = health_data.get('database_connection', 'unknown')
         context['api_status'] = health_data.get('api_status', 'unknown')
-        context['system_uptime'] = health_data.get('system_uptime', 'N/A') # Still N/A as not provided by API
 
     return render(request, 'dashboard/index.html', context)
+
+
+def job_explorer_view(request):
+    """
+    Job search and browsing interface.
+    Handles search queries and filtering from user input.
+    """
+    # Get search parameters from user
+    search_query = request.GET.get('search', '')
+    company_filter = request.GET.get('company', '')
+    days_filter = request.GET.get('days', '')
+    page = request.GET.get('page', '1')
+    
+    # Build parameters for jobs API
+    api_params = {}
+    if search_query:
+        api_params['search'] = search_query
+    if company_filter:
+        api_params['company_exact'] = company_filter
+    if days_filter:
+        api_params['posted_within_days'] = days_filter
+    api_params['page'] = page
+    api_params['ordering'] = '-first_seen'
+    
+    # Get job data
+    jobs_data = call_dashboard_api(request, 'job-list', api_params)
+    
+    # Get company list for filter dropdown
+    trends_data = call_dashboard_api(request, 'trends', {'metric': 'companies', 'limit': 20})
+    
+    context = {
+        'jobs': jobs_data,
+        'trends': trends_data,
+        'search_query': search_query,
+        'company_filter': company_filter,
+        'days_filter': days_filter,
+        'page_title': 'Job Explorer'
+    }
+    
+    return render(request, 'dashboard/jobs.html', context)
+
+def system_monitor_view(request):
+    """
+    System health and performance monitoring.
+    Combines data from multiple monitoring endpoints.
+    """
+    # Get comprehensive system data
+    health_data = call_dashboard_api(request, 'health-check')
+    stats_data = call_dashboard_api(request, 'quick-stats')
+    sessions_data = call_dashboard_api(request, 'scraping-session-list', {'within_days': 7})
+    
+    context = {
+        'health': health_data,
+        'stats': stats_data, 
+        'recent_sessions': sessions_data,
+        'page_title': 'System Monitor'
+    }
+    
+    return render(request, 'dashboard/system.html', context)
+
+def market_insights_view(request):
+    """
+    Deep market intelligence with trend comparisons.
+    Shows multiple time periods for trend analysis.
+    """
+    # Get trends for different time periods
+    trends_30d = call_dashboard_api(request, 'trends', {'days': 30, 'limit': 10})
+    trends_7d = call_dashboard_api(request, 'trends', {'days': 7, 'limit': 10})
+    trends_90d = call_dashboard_api(request, 'trends', {'days': 90, 'limit': 10})
+    
+    context = {
+        'trends_monthly': trends_30d,
+        'trends_weekly': trends_7d, 
+        'trends_quarterly': trends_90d,
+        'page_title': 'Market Intelligence'
+    }
+    
+    return render(request, 'dashboard/insights.html', context)
+
+def data_quality_view(request):
+    """
+    Data processing and quality monitoring.
+    Shows raw data processing status and errors.
+    """
+    # Get raw data processing info
+    pending_jobs = call_dashboard_api(request, 'raw-job-list', {'status': 'pending'})
+    failed_jobs = call_dashboard_api(request, 'raw-job-list', {'status': 'failed', 'limit': 10})
+    recent_sessions = call_dashboard_api(request, 'scraping-session-list', {'within_days': 3})
+    
+    context = {
+        'pending_jobs': pending_jobs,
+        'failed_jobs': failed_jobs,
+        'recent_sessions': recent_sessions,
+        'page_title': 'Data Quality Monitor'
+    }
+    
+    return render(request, 'dashboard/quality.html', context)
