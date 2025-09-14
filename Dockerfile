@@ -13,6 +13,11 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+# Make sure script is executable
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
 EXPOSE 8000
 
 CMD ["gunicorn", "job_scraper.wsgi:application", "--bind", "0.0.0.0:8000"]
