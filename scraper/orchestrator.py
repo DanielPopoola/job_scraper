@@ -30,6 +30,7 @@ class OrchestrationConfig:
     # Rate limiting
     delay_between_sites: int = 30  # seconds
     delay_between_searches: int = 10  # seconds
+    max_concurrent_tasks: int = 5
     
     # Retry settings
     max_retries: int = 3
@@ -70,7 +71,7 @@ class JobScrapingOrchestrator:
         This is the main orchestration method!
         """
         session_start = time.time()
-        self.logger.info(f"Starting orchestration session with {len(tasks)} tasks")
+        self.logger.info(f"Starting orchestration session with {len(tasks)} tasks. Max concurrency: {self.config.max_concurrent_tasks}")
 
         sorted_tasks = sorted(tasks, key=lambda t: (t.priority, t.site, t.search_term))
 
@@ -86,7 +87,7 @@ class JobScrapingOrchestrator:
         }
         
         try:
-            with ThreadPoolExecutor() as executor:
+            with ThreadPoolExecutor(max_workers=self.config.max_concurrent_tasks) as executor:
                 future_to_task = {executor.submit(self._execute_single_task, task): task for task in sorted_tasks}
 
                 for future in as_completed(future_to_task):

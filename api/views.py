@@ -277,6 +277,16 @@ class OrchestrationView(APIView):
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
 
+        # Create OrchestrationConfig
+        config = OrchestrationConfig()
+
+        # Automatically inject delays if more than one search term is passed
+        if len(validated_data['searches']) > 1:
+            # Override defaults with more conservative values for API calls
+            config.delay_between_searches = 15 # seconds
+            config.delay_between_sites = 45 # seconds
+            config.max_concurrent_tasks = 3 # conservative concurrency for API
+
         # Create scraping tasks from the validated data
         tasks = []
         priority = 1
@@ -293,7 +303,7 @@ class OrchestrationView(APIView):
             priority += 1
         
         # Run the orchestration in a background thread
-        orchestrator = JobScrapingOrchestrator()
+        orchestrator = JobScrapingOrchestrator(config=config) # Pass the config
         thread = threading.Thread(target=orchestrator.run_scraping_session, args=(tasks,))
         thread.daemon = True # Allows main process to exit even if thread is running
         thread.start()
