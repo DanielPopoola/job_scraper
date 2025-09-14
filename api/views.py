@@ -1,14 +1,14 @@
-from collections import Counter
-from datetime import timedelta
 import logging
 import re
 import threading
+from collections import Counter
+from datetime import timedelta
 
 from django.db.models import Avg, Count, F, Max
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
@@ -16,7 +16,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from scraper.models import Job, JobMapping, RawJobPosting, ScrapingSession
-from scraper.orchestrator import JobScrapingOrchestrator, ScrapingTask, OrchestrationConfig
+from scraper.orchestrator import (
+    JobScrapingOrchestrator,
+    OrchestrationConfig,
+    ScrapingTask,
+)
 
 from .filters import JobFilter, RawJobPostingFilter, ScrapingSessionFilter
 from .pagination import CustomPagination
@@ -28,8 +32,8 @@ from .serializers import (
     OrchestrationTaskSerializer,
     RawJobPostingSerializer,
     ScrapingSessionSerializer,
-    SystemHealthSerializer,
     SkillStatsSerializer,
+    SystemHealthSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -530,20 +534,19 @@ class HealthCheckView(APIView):
             health_data['orchestrator_error'] = str(e)
             health_data['overall_status'] = 'degraded'
 
-        # --- FIX: Serialize the nested ScrapingSession object ---
+        # Serialize the nested ScrapingSession object ---
         for site in health_data.get('site_health', {}):
             last_session = health_data['site_health'][site].get('last_successful')
             if last_session:
                 health_data['site_health'][site]['last_successful'] = ScrapingSessionSerializer(last_session).data
-        # --- END FIX ---
 
         # Determine overall status
         overall_status = 'healthy'
         if health_data.get('orchestrator_error') or health_data.get('failed_processing', 0) > 0:
             overall_status = 'degraded'
         else:
-            for site, stats in health_data.get('site_health', {}).items():
-                if stats.get('success_rate', 100) < 70: # Threshold for degraded status
+            for _, stats in health_data.get('site_health', {}).items():
+                if stats.get('success_rate', 100) < 70:
                     overall_status = 'degraded'
                     break
         health_data['overall_status'] = overall_status

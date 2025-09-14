@@ -1,16 +1,15 @@
 import logging
+import random
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
 
 from django.utils import timezone
 
 from scraper.models import RawJobPosting, ScrapingSession
 from scraper.pipeline.processor import JobProcessingPipeline
-from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.indeed import IndeedScraper
 from scraper.scrapers.linkedin import LinkedInScraper
 

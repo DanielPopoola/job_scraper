@@ -1,8 +1,9 @@
+from urllib.parse import urlparse
+
 import requests
+from django.contrib import messages
 from django.shortcuts import render
 from django.urls import reverse
-from django.contrib import messages
-from urllib.parse import urlparse
 
 
 def call_dashboard_api(request, endpoint_name, params=None):
