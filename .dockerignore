@@ -8,7 +8,6 @@ Dockerfile
 docker-compose.yml
 
 # Python
-.env
 .venv/
 __pycache__
 *.pyc
