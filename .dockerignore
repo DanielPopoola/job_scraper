@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Python
+.env
+.venv/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+
+# Other
+.pytest_cache
+.vscode
+*.log
+*.swp
+*.swo
+*.swn
+*.bak
+*.tmp
+*.orig
+*.rej
+*.db
+*.sqlite3
+*.sqlite3-journal
+*.xlsx
+*.xlsx:Zone.Identifier
+*.json
+*.md
