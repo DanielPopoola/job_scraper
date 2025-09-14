@@ -31,6 +31,7 @@ class LinkedInScraper(BaseScraper):
         }
         self.jobs_per_page = 10
         self.search_term: str
+        self.jobs_existing_count = 0
 
     def get_site_name(self) -> str:
         return 'linkedin'
@@ -134,18 +135,21 @@ class LinkedInScraper(BaseScraper):
         for element in job_elements:
             job_data = self.extract_job_data(element)
             if job_data and self.validate_job_data(job_data):
-                self.save_raw_job(job_data, search_term)
-                jobs_on_page.append(job_data)
-                self.current_session.jobs_successful += 1
+                _, created = self.save_raw_job(job_data, search_term)
+                if created:
+                    jobs_on_page.append(job_data)
+                    self.current_session.jobs_successful += 1
+                else:
+                    self.jobs_existing_count += 1
             else:
                 self.current_session.jobs_failed += 1
         
         self.current_session.save()
         return jobs_on_page
 
-    def scrape_jobs(self, search_term, max_jobs=50) -> List[Dict[str, Any]]:
+    def scrape_jobs(self, search_term, max_jobs=50) -> Dict[str, Any]:
         """
-        Public method to scrape jobs. It preserves the original return type (List[Dict]).
+        Public method to scrape jobs. It now returns a dict with scraped jobs and existing jobs count.
         """
         self.current_session = ScrapingSession.objects.create(
             source_site=self.get_site_name(),
@@ -153,6 +157,7 @@ class LinkedInScraper(BaseScraper):
             status='running'
         )
         self.search_term = search_term
+        self.jobs_existing_count = 0  # Reset counter
         all_scraped_jobs = []
 
         try:
@@ -166,7 +171,7 @@ class LinkedInScraper(BaseScraper):
                     break
             
             self.current_session.status = 'completed'
-            self.logger.info(f"LinkedIn scraping completed: {len(all_scraped_jobs)} jobs scraped.")
+            self.logger.info(f"LinkedIn scraping completed: {len(all_scraped_jobs)} new jobs scraped, {self.jobs_existing_count} existing jobs found.")
 
         except Exception as e:
             self.logger.error(f"LinkedIn scraping failed: {e}")
@@ -176,7 +181,7 @@ class LinkedInScraper(BaseScraper):
             self.current_session.finished_at = timezone.now()
             self.current_session.save()
         
-        return all_scraped_jobs
+        return {"scraped_jobs": all_scraped_jobs, "jobs_existing": self.jobs_existing_count}
 
     def validate_job_data(self, job_data):
         required_fields = ['title', 'company', 'location', 'url', 'description']

@@ -38,18 +38,7 @@ class BaseScraper(ABC):
         ]
         self.rotate_user_agents = False
 
-        # Configure logging
-        self.setup_logging()
-
-    def setup_logging(self):
-        """Configure logging for this scrapper"""
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        self.logger.setLevel(logging.DEBUG)
+        
 
     def setup_driver(self):
         """Initialize Selenium WebDriver with stealth for Chrome 140+"""
@@ -178,7 +167,7 @@ class BaseScraper(ABC):
             self.logger.warning(f"Error finding elements {locator}: {e}")
             return []
         
-    def scrape_jobs(self, search_term, max_jobs=20) -> List:
+    def scrape_jobs(self, search_term, max_jobs=20) -> Dict[str, Any]:
         """
         Main scraping workflow. This is the public interface.
         
@@ -187,9 +176,10 @@ class BaseScraper(ABC):
             max_jobs: Maximum number of jobs to scrape
             
         Returns:
-            List of successfully scraped job data dictionaries
+            Dict with scraped jobs and count of existing jobs.
         """
         scraped_jobs = []
+        jobs_existing = 0
 
         # Create scraping session for tracking
         self.current_session = ScrapingSession.objects.create(
@@ -230,11 +220,13 @@ class BaseScraper(ABC):
 
                     if job_data and self.validate_job_data(job_data):
                         # Save to database
-                        self.save_raw_job(job_data, search_term)
-                        scraped_jobs.append(job_data)
-                        self.current_session.jobs_successful += 1
-
-                        self.logger.info(f"Successfully scraped: {job_data.get('title', 'N/A')}")
+                        _, created = self.save_raw_job(job_data, search_term)
+                        if created:
+                            scraped_jobs.append(job_data)
+                            self.current_session.jobs_successful += 1
+                            self.logger.info(f"Successfully scraped: {job_data.get('title', 'N/A')}")
+                        else:
+                            jobs_existing += 1
                     else:
                         self.logger.warning(f"Invalid job data for job{i+1}")
                         self.current_session.jobs_failed += 1
@@ -262,8 +254,8 @@ class BaseScraper(ABC):
             self.current_session.save()
             self.cleanup_driver()
         
-        self.logger.info(f"Scraping completed. Success: {len(scraped_jobs)} jobs")
-        return scraped_jobs
+        self.logger.info(f"Scraping completed. Success: {len(scraped_jobs)} new jobs. Found {jobs_existing} existing jobs.")
+        return {"scraped_jobs": scraped_jobs, "jobs_existing": jobs_existing}
 
     def validate_job_data(self, job_data) -> bool:
         """
@@ -284,14 +276,14 @@ class BaseScraper(ABC):
         
         return True
 
-    def save_raw_job(self, job_data, search_term) -> RawJobPosting:
+    def save_raw_job(self, job_data, search_term) -> (RawJobPosting, bool):
         """
         Save raw job data to database.
         Args:
             job_data: Dictionary containing job information
             search_term: The search term used to find this job
         Returns:
-            RawJobPosting instance
+            (RawJobPosting instance, bool indicating if created)
         """
         try:
             raw_job, created = RawJobPosting.objects.get_or_create(
@@ -311,7 +303,7 @@ class BaseScraper(ABC):
             else:
                 self.logger.info(f"Job already exists: {job_data['title']}")
 
-            return raw_job
+            return raw_job, created
 
         except Exception as e:
             self.logger.error(f"Error saving job data: {e}")

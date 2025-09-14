@@ -104,7 +104,7 @@ class IndeedScraper(BaseScraper):
             self.logger.error(f"Error extracting basic job data: {e}")
             return None
     
-    def scrape_jobs(self, search_term: str, max_jobs: int = 15, location: str = "United States") -> List[Dict[str, Any]]:
+    def scrape_jobs(self, search_term: str, max_jobs: int = 15, location: str = "United States") -> Dict[str, Any]:
         from scraper.models import ScrapingSession
         self.current_session = ScrapingSession.objects.create(
             source_site=self.get_site_name(),
@@ -112,6 +112,7 @@ class IndeedScraper(BaseScraper):
             status='running'
         )
         scraped_jobs = []
+        jobs_existing = 0
 
         try:
             self.setup_driver()
@@ -132,9 +133,12 @@ class IndeedScraper(BaseScraper):
                 job_data = self.extract_job_data(job_element)
                 
                 if job_data and self.validate_job_data(job_data):
-                    self.save_raw_job(job_data, search_term)
-                    scraped_jobs.append(job_data)
-                    self.current_session.jobs_successful += 1
+                    _, created = self.save_raw_job(job_data, search_term)
+                    if created:
+                        scraped_jobs.append(job_data)
+                        self.current_session.jobs_successful += 1
+                    else:
+                        jobs_existing += 1
                 else:
                     self.current_session.jobs_failed += 1
             
@@ -148,8 +152,8 @@ class IndeedScraper(BaseScraper):
             self.current_session.save()
             self.cleanup_driver()
         
-        self.logger.info(f"Indeed scraping finished. Scraped {len(scraped_jobs)} jobs.")
-        return scraped_jobs
+        self.logger.info(f"Indeed scraping finished. Scraped {len(scraped_jobs)} new jobs. Found {jobs_existing} existing jobs.")
+        return {"scraped_jobs": scraped_jobs, "jobs_existing": jobs_existing}
 
     def validate_job_data(self, job_data: Dict[str, Any]) -> bool:
         return bool(job_data.get('title') and job_data.get('url'))
