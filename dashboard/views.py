@@ -2,6 +2,7 @@ import requests
 from django.shortcuts import render
 from django.urls import reverse
 from django.contrib import messages
+from urllib.parse import urlparse
 
 
 def call_dashboard_api(request, endpoint_name, params=None):
@@ -72,7 +73,6 @@ def dashboard_view(request):
 
     return render(request, 'dashboard/index.html', context)
 
-
 def job_explorer_view(request):
     """
     Job search and browsing interface.
@@ -92,9 +92,9 @@ def job_explorer_view(request):
         page_size = 20
         jobs_data['num_pages'] = (jobs_data.get('count', 0) + page_size - 1) // page_size
         if jobs_data.get('next'):
-            jobs_data['next_page_query'] = jobs_data['next'].split('?')[1]
+            jobs_data['next_page_query'] = urlparse(jobs_data['next']).query
         if jobs_data.get('previous'):
-            jobs_data['previous_page_query'] = jobs_data['previous'].split('?')[1]
+            jobs_data['previous_page_query'] = urlparse(jobs_data['previous']).query
 
     # Fetch data for filter dropdowns
     companies_data = call_dashboard_api(request, 'trends', {'metric': 'companies', 'limit': 50})
@@ -170,3 +170,12 @@ def data_quality_view(request):
     }
     
     return render(request, 'dashboard/quality.html', context)
+
+def orchestration_view(request):
+    """
+    Renders the page for triggering and monitoring scraping orchestration.
+    """
+    context = {
+        'page_title': 'Scraping Orchestrator'
+    }
+    return render(request, 'dashboard/orchestrate.html', context)

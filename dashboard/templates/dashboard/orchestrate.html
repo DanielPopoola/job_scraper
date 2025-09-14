@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row flex-1 gap-8 p-4 md:p-8">
+    <!-- Orchestration Form -->
+    <aside class="flex flex-col w-full md:w-96 bg-white p-6 rounded-lg border border-gray-200 h-fit">
+        <h3 class="text-slate-800 text-lg font-semibold tracking-tight pb-4 border-b border-gray-200">Configure Scraping Session</h3>
+        <form id="orchestration-form" class="space-y-6 pt-6">
+            {% csrf_token %}
+            
+            <!-- Sites Selection -->
+            <div class="space-y-3">
+                <label class="text-sm font-medium text-slate-700">Job Sites</label>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center">
+                        <input id="site-linkedin" name="sites" type="checkbox" value="linkedin" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]" checked>
+                        <label for="site-linkedin" class="ml-2 block text-sm text-slate-800">LinkedIn</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="site-indeed" name="sites" type="checkbox" value="indeed" class="h-4 w-4 rounded border-gray-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]">
+                        <label for="site-indeed" class="ml-2 block text-sm text-slate-800">Indeed</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Max Jobs -->
+            <div class="space-y-2">
+                <label for="max-jobs" class="text-sm font-medium text-slate-700">Max Jobs Per Search</label>
+                <input type="number" id="max-jobs" name="max_jobs" value="50" class="form-input w-full min-w-0 resize-none overflow-hidden rounded-md text-slate-800 bg-gray-100 focus:outline-0 focus:ring-2 focus:ring-[var(--primary-color)] border-transparent h-10 placeholder:text-slate-500 px-4 text-sm">
+            </div>
+
+            <!-- Dynamic Search Terms -->
+            <div class="space-y-3">
+                <label class="text-sm font-medium text-slate-700">Search Criteria</label>
+                <div id="search-criteria-container" class="space-y-3">
+                    <!-- Dynamic rows will be inserted here -->
+                </div>
+                <button type="button" id="add-search-row" class="w-full flex items-center justify-center gap-2 min-w-[84px] cursor-pointer overflow-hidden rounded-md h-9 px-3 bg-gray-100 border border-gray-300 text-slate-700 text-sm font-medium hover:bg-gray-200">
+                    <span class="material-symbols-outlined text-base">add</span>
+                    <span>Add Search</span>
+                </button>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-4">
+                <button type="submit" class="w-full flex items-center justify-center gap-2 min-w-[84px] cursor-pointer overflow-hidden rounded-md h-10 px-4 bg-[var(--primary-color)] text-white text-sm font-semibold leading-normal">
+                    <span class="material-symbols-outlined">play_arrow</span>
+                    <span>Start Scraping Session</span>
+                </button>
+            </div>
+        </form>
+    </aside>
+
+    <!-- Right Panel for Instructions/Feedback -->
+    <div class="flex-1 flex flex-col gap-6">
+        <h1 class="text-slate-900 text-3xl font-bold">Orchestrator Control</h1>
+        
+        <!-- API Feedback -->
+        <div id="api-feedback" class="hidden p-4 rounded-md"></div>
+
+        <div class="bg-white p-6 rounded-lg border border-gray-200">
+            <h4 class="text-slate-800 text-lg font-semibold mb-2">How it Works</h4>
+            <p class="text-sm text-slate-600">
+                This form allows you to start a new scraping session in the background. The server will immediately accept your request and begin scraping based on your configuration.
+            </p>
+            <ul class="list-disc list-inside text-sm text-slate-600 mt-4 space-y-1">
+                <li>Use the form on the left to define what you want to scrape.</li>
+                <li>You can add multiple search terms, each with an optional location.</li>
+                <li>When you click "Start Scraping", the request is sent to the server.</li>
+                <li>A message will appear above to confirm the session has started or if there was an error.</li>
+                <li>You can monitor the progress of the scraping session on the <a href="{% url 'dashboard:system-monitor' %}" class="text-[var(--primary-color)] hover:underline">System Monitor</a> page.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Template for a single search row -->
+<template id="search-row-template">
+    <div class="search-row flex items-center gap-2">
+        <input type="text" name="search_term" placeholder="Search Term (e.g., Data Scientist)" class="form-input flex-grow rounded-md bg-gray-100 border-transparent focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
+        <input type="text" name="location" placeholder="Location (Optional)" class="form-input w-40 rounded-md bg-gray-100 border-transparent focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
+        <button type="button" class="remove-search-row flex-shrink-0 flex items-center justify-center h-9 w-9 rounded-md bg-red-50 text-red-600 hover:bg-red-100">
+            <span class="material-symbols-outlined text-base">remove</span>
+        </button>
+    </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.getElementById('search-criteria-container');
+    const addButton = document.getElementById('add-search-row');
+    const template = document.getElementById('search-row-template');
+    const form = document.getElementById('orchestration-form');
+    const feedbackEl = document.getElementById('api-feedback');
+
+    function addSearchRow() {
+        const newRow = template.content.cloneNode(true);
+        container.appendChild(newRow);
+        // Add event listener to the new remove button
+        container.lastElementChild.querySelector('.remove-search-row').addEventListener('click', function(e) {
+            e.target.closest('.search-row').remove();
+        });
+    }
+
+    // Add one row by default
+    addSearchRow();
+
+    addButton.addEventListener('click', addSearchRow);
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        feedbackEl.classList.add('hidden');
+
+        const formData = new FormData(form);
+        const sites = Array.from(document.querySelectorAll('input[name="sites"]:checked')).map(el => el.value);
+        const maxJobs = parseInt(formData.get('max_jobs'), 10);
+        
+        const searches = [];
+        document.querySelectorAll('.search-row').forEach(row => {
+            const searchTerm = row.querySelector('input[name="search_term"]').value;
+            const location = row.querySelector('input[name="location"]').value;
+            if (searchTerm) {
+                const searchObj = { search_term: searchTerm };
+                if (location) {
+                    searchObj.location = location;
+                }
+                searches.push(searchObj);
+            }
+        });
+
+        if (sites.length === 0 || searches.length === 0) {
+            showFeedback('Please select at least one site and provide at least one search term.', 'error');
+            return;
+        }
+
+        const payload = {
+            sites: sites,
+            max_jobs: maxJobs,
+            searches: searches,
+        };
+
+        const csrfToken = formData.get('csrfmiddlewaretoken');
+
+        fetch('{% url "api:orchestrate" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(payload),
+        })
+        .then(response => {
+            if (response.status === 202) {
+                return response.json();
+            }
+            return response.json().then(err => Promise.reject(err));
+        })
+        .then(data => {
+            showFeedback(data.message, 'success');
+            form.reset();
+            // Clear all but one search row
+            while (container.children.length > 1) {
+                container.removeChild(container.lastChild);
+            }
+        })
+        .catch(error => {
+            console.error('API Error:', error);
+            const errorMessage = error.detail || 'An unknown error occurred.';
+            showFeedback(`Error: ${JSON.stringify(errorMessage)}`, 'error');
+        });
+    });
+
+    function showFeedback(message, type) {
+        feedbackEl.textContent = message;
+        if (type === 'success') {
+            feedbackEl.className = 'p-4 rounded-md bg-green-50 text-green-700';
+        } else {
+            feedbackEl.className = 'p-4 rounded-md bg-red-50 text-red-700';
+        }
+    }
+});
+</script>
+{% endblock %}
