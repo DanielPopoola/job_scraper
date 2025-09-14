@@ -155,6 +155,9 @@ class JobScrapingOrchestrator:
     
     def _execute_single_task(self, task: ScrapingTask) -> Dict[str, Any]:
         """Execute a single scraping task with retry logic"""
+        # Add a random "jitter" to stagger requests to avoid thundering herd
+        initial_delay = random.uniform(self.config.delay_between_searches / 4, self.config.delay_between_searches)
+        time.sleep(initial_delay)
 
         task_result = {
             'success': False,

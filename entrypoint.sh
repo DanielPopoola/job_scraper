@@ -9,8 +9,11 @@ python manage.py migrate --noinput
 echo "Starting initial job scraping in the background..."
 python manage.py orchestrate \
     --mode "custom" \
-    --sites "linkedin" \
+    --sites "linkedin" "indeed" \
     --max-jobs 100 \
+    --max-concurrency 3 \
+    --delay-between-searches 20 \
+    --delay-between-sites 60 \
     --search-terms \
         "Project Manager" \
         "Python Developer" \

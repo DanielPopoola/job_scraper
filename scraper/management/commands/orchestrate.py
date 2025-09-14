@@ -148,7 +148,8 @@ class Command(BaseCommand):
         config = OrchestrationConfig(
             delay_between_sites=options['delay_between_sites'],
             delay_between_searches=options['delay_between_searches'],
-            process_immediately=options['process_immediately']
+            process_immediately=options['process_immediately'],
+            max_concurrent_tasks=options['max_concurrency']
         )
 
         # Create orchestrator
