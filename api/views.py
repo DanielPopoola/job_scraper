@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from scraper.models import Job, JobMapping, RawJobPosting, ScrapingSession
-from scraper.orchestrator import JobScrapingOrchestrator, ScrapingTask
+from scraper.orchestrator import JobScrapingOrchestrator, ScrapingTask, OrchestrationConfig
 
 from .filters import JobFilter, RawJobPostingFilter, ScrapingSessionFilter
 from .pagination import CustomPagination
