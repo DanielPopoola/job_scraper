@@ -13,7 +13,7 @@ This project is a web scraping application that collects job postings from vario
                                      v
 +-----------------+      +-----------------------+      +--------------------+
 |   Dashboard UI  |<---->|      Django API       |<---->|  Canonical Jobs    |
-| (React/Next.js) |      |                       |      | (Database)         |
+| (HTML+ CSS) |      |                       |      | (Database)         |
 +-----------------+      +-----------------------+      +--------------------+
                                      ^
                                      |
