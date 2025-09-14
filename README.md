@@ -36,9 +36,9 @@ This project is a web scraping application that collects job postings from vario
 
 The `JobScrapingOrchestrator` is the heart of the scraping process. It performs the following steps:
 
-1.  **Task Management:** It takes a list of `ScrapingTask` objects, each defining a site and a search term to scrape.
-2.  **Execution with Retries:** For each task, it executes the corresponding scraper. If a task fails, it retries up to a configured number of times.
-3.  **Rate Limiting:** It enforces delays between requests to the same site and between different sites to avoid being blocked.
+1.  **Task Management:** It takes a list of `ScrapingTask` objects, each defining a site, a search term, and an optional location to scrape.
+2.  **Concurrent Execution:** It uses a thread pool to execute multiple scraping tasks in parallel for maximum efficiency. Each task runs in a completely isolated scraper instance.
+3.  **Resilience and Retries:** If a task fails, it is automatically retried up to a configured number of times.
 4.  **Data Persistence:** The raw scraped data is saved to the `RawJobPosting` model in the database.
 5.  **Processing Trigger:** After the scraping session is complete, it can trigger the `JobProcessingPipeline` to process the newly scraped jobs.
 
@@ -70,8 +70,9 @@ The API provides several endpoints for accessing the job data and monitoring the
         - `days`: The number of days to analyze (default: 30).
         - `limit`: The number of results to return (default: 15).
 
-### Monitoring
+### Monitoring & Actions
 
+- **`POST /api/v1/orchestrate/`**: Triggers a new scraping session in the background.
 - **`GET /api/v1/health/`**: Get system health metrics.
 - **`GET /api/v1/quick-stats/`**: Get a quick overview of the system stats.
 - **`GET /api/v1/scraping-sessions/`**: List all scraping sessions.
@@ -108,17 +109,32 @@ The API provides several endpoints for accessing the job data and monitoring the
 
 ## Usage
 
+There are two primary ways to run the scraper.
+
+### 1. Via Management Command (Recommended for development)
+
+You can use the `orchestrate` management command to run a scraping session. This is the easiest way to trigger a scrape from the command line. The command can run multiple searches concurrently.
+
+```bash
+# Run a custom scraping session for multiple jobs
+python manage.py orchestrate \
+    --mode "custom" \
+    --sites "linkedin" "indeed" \
+    --max-jobs 50 \
+    --search-terms "Data Engineer" "React Developer" "DevOps Engineer"
+```
+
+### 2. Via the API (Recommended for production/integration)
+
+The application exposes an API endpoint to trigger scraping sessions. This is the recommended way to run scrapes in a production environment.
+
+Send a `POST` request to `/api/v1/orchestrate/` with a JSON payload. See the [API Documentation](docs/api.md) for more details.
+
+### 3. Running the Web Application
+
 1.  **Run the Django development server:**
     ```bash
     python manage.py runserver
     ```
-2.  **Run the scraper:**
-    To run a scraping session, you can use the Django shell:
-    ```bash
-    python manage.py shell
-    ```
-    Then, in the shell:
-    ```python
-    from scraper.orchestrator import OrchestrationExamples
-    OrchestrationExamples.daily_job_scraping()
-    ```
+2.  Access the dashboard at `http://127.0.0.1:8000/dashboard/`.
+

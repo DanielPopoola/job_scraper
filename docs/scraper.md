@@ -51,41 +51,47 @@ print(stats)
 
 ## Orchestrator
 
-The `JobScrapingOrchestrator` is the main component that coordinates the entire scraping and processing workflow.
+The `JobScrapingOrchestrator` is the main component that coordinates the entire scraping and processing workflow. It is designed to run multiple scraping tasks concurrently for high efficiency.
 
-### Orchestrator Configuration
+### Orchestrator Features
 
-The orchestrator can be configured with an `OrchestrationConfig` object.
-
-```python
-from scraper.orchestrator import OrchestrationConfig, JobScrapingOrchestrator
-
-config = OrchestrationConfig(
-    delay_between_sites=60,  # 1 minute
-    delay_between_searches=30, # 30 seconds
-    max_retries=3,
-    retry_delay=60, # 1 minute
-    process_immediately=False, # Batch process at the end
-)
-
-orchestrator = JobScrapingOrchestrator(config)
-```
+- **Concurrent Execution**: The orchestrator uses a thread pool to run multiple scraping tasks in parallel, significantly speeding up large scraping sessions.
+- **Intelligent Location Handling**: It automatically adapts search queries for different sites. For sites with dedicated location fields (like Indeed), it uses them. For others (like LinkedIn), it appends the location to the search term.
+- **Task Management**: It takes a list of `ScrapingTask` objects, each defining a site, a search term, and an optional location.
+- **Resilience**: Each task runs in a completely isolated scraper instance. If a task fails, it is retried automatically up to a configured number of times.
+- **Rate Limiting**: It enforces delays between retries to avoid being blocked.
 
 ### Running the Orchestrator
 
 The orchestrator is run by calling the `run_scraping_session` method with a list of `ScrapingTask` objects.
 
 ```python
-from scraper.orchestrator import ScrapingTask
+from scraper.orchestrator import ScrapingTask, JobScrapingOrchestrator
+
+orchestrator = JobScrapingOrchestrator()
 
 tasks = [
-    ScrapingTask(site="linkedin", search_term="python developer", max_jobs=50),
-    ScrapingTask(site="indeed", search_term="python developer", max_jobs=50),
+    ScrapingTask(site="linkedin", search_term="Python Developer", location="New York, NY", max_jobs=50),
+    ScrapingTask(site="indeed", search_term="Python Developer", location="New York, NY", max_jobs=50),
+    ScrapingTask(site="linkedin", search_term="Data Scientist", location="Remote", max_jobs=25),
 ]
 
 results = orchestrator.run_scraping_session(tasks)
 print(results)
 ```
+
+## Logging
+
+The application now uses a structured, file-based logging system configured in `settings.py`. Logs for different components are written to separate files, making debugging much easier.
+
+- **Log Directory:** `logs/`
+- **Structure:**
+    - `logs/linkedin/scraper.log`: Logs from the `LinkedInScraper`.
+    - `logs/indeed/scraper.log`: Logs from the `IndeedScraper`.
+    - `logs/orchestrator/orchestrator.log`: Logs from the `JobScrapingOrchestrator`.
+    - `logs/pipeline/pipeline.log`: Logs from all pipeline components (`JobProcessingPipeline`, `JobDataCleaner`, etc.).
+
+Each log file is automatically rotated when it reaches 5MB to prevent files from growing too large.
 
 ## Management Commands
 

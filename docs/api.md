@@ -8,6 +8,50 @@ The API currently does not require authentication, but this can be added in the 
 
 ## Endpoints
 
+### Actions
+
+#### Trigger Orchestration
+
+- **Endpoint:** `POST /api/v1/orchestrate/`
+- **Description:** Starts a new scraping orchestration session in the background. The server will immediately respond with a `202 Accepted` status if the request is valid. The actual scraping will run as a background task.
+- **Request Body:**
+    - `sites` (array of strings, required): A list of sites to scrape. Options: `"linkedin"`, `"indeed"`.
+    - `max_jobs` (integer, optional, default: 50): The maximum number of new jobs to scrape per search criterion.
+    - `searches` (array of objects, required): A list of search criteria.
+        - `search_term` (string, required): The job title or keyword to search for.
+        - `location` (string, optional): The location to search in.
+- **Example Request:**
+    ```json
+    {
+        "sites": ["linkedin", "indeed"],
+        "max_jobs": 30,
+        "searches": [
+            { "search_term": "Data Scientist", "location": "New York, NY" },
+            { "search_term": "Backend Engineer", "location": "Remote" },
+            { "search_term": "Frontend Developer" }
+        ]
+    }
+    ```
+- **Example Success Response (202 Accepted):**
+    ```json
+    {
+        "message": "Scraping session started for 6 tasks in the background."
+    }
+    ```
+- **Example `curl` Command:**
+    ```bash
+    curl -X POST http://127.0.0.1:8000/api/v1/orchestrate/ \
+    -H "Content-Type: application/json" \
+    -d '{
+        "sites": ["linkedin", "indeed"],
+        "max_jobs": 30,
+        "searches": [
+            { "search_term": "Data Scientist", "location": "New York, NY" },
+            { "search_term": "Backend Engineer", "location": "Remote" }
+        ]
+    }'
+    ```
+
 ### Jobs
 
 #### List Jobs
