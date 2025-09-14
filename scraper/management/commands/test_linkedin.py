@@ -26,9 +26,11 @@ class Command(BaseCommand):
         scraper = LinkedInScraper()
 
         try:
-            jobs = scraper.scrape_jobs(search_term, max_jobs=max_jobs)
+            result = scraper.scrape_jobs(search_term, max_jobs=max_jobs)
+            jobs = result["scraped_jobs"]
+            jobs_existing = result["jobs_existing"]
 
-            self.stdout.write(f"\n✓ Scraped {len(jobs)} jobs successfully")
+            self.stdout.write(f"\n✓ Scraped {len(jobs)} new jobs successfully. Found {jobs_existing} existing jobs.")
             
             # Show some sample data
             for i, job in enumerate(jobs[:3], 1):  # Show first 3 jobs

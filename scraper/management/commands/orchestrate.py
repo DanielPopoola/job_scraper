@@ -221,11 +221,12 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("\n=== ORCHESTRATION RESULTS ==="))
         
         duration = results['total_duration']
-        self.stdout.write(f"Duration: {duration}")
+        self.stdout.write(f"Duration: {duration:.2f} seconds")
         self.stdout.write(f"Tasks completed: {results['tasks_completed']}")
         self.stdout.write(f"Tasks failed: {results['tasks_failed']}")
-        self.stdout.write(f"Jobs scraped: {results['total_jobs_scraped']}")
-        
+        self.stdout.write(f"New jobs scraped: {results['total_jobs_scraped']}")
+        self.stdout.write(f"Existing jobs found: {results.get('total_jobs_existing', 0)}")
+
         if 'total_jobs_processed' in results:
             self.stdout.write(f"Jobs processed: {results['total_jobs_processed']}")
         
@@ -234,7 +235,8 @@ class Command(BaseCommand):
             self.stdout.write("\nSite Performance:")
             for site, stats in results['site_stats'].items():
                 success_rate = 100 - (stats['failures'] / max(stats['searches'], 1) * 100)
-                self.stdout.write(f"  {site.upper()}: {stats['jobs']} jobs, "
+                self.stdout.write(f"  {site.upper()}: {stats['jobs']} new jobs, "
+                                f"{stats.get('existing', 0)} existing, "
                                 f"{stats['searches']} searches, "
                                 f"{success_rate:.1f}% success rate")
         

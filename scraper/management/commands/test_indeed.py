@@ -38,9 +38,11 @@ class Command(BaseCommand):
         scraper = IndeedScraper(headless=True)
 
         try:
-            jobs = scraper.scrape_jobs(search_term, max_jobs=max_jobs, location=location)
+            result = scraper.scrape_jobs(search_term, max_jobs=max_jobs, location=location)
+            jobs = result["scraped_jobs"]
+            jobs_existing = result["jobs_existing"]
 
-            self.stdout.write(f"\n✓ Scraped {len(jobs)} jobs successfully")
+            self.stdout.write(f"\n✓ Scraped {len(jobs)} new jobs successfully. Found {jobs_existing} existing jobs.")
             
             if jobs:
                 # Show sample data
