@@ -28,15 +28,7 @@ class JobDataCleaner:
             'location': ['unknown location', 'n/a', 'na', ''],
         }
 
-    def setup_logging(self):
-        """Configure logging for this class"""
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        self.logger.setLevel(logging.DEBUG)
+    
 
     def clean_job_data(self, raw_job_data: Dict[str, Any]) -> Dict[str, Any]:
         """

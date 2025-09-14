@@ -10,6 +10,17 @@ env = environ.Env(
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Create log directories
+LOGS_DIR = BASE_DIR / 'logs'
+LOG_FOLDERS = [
+    'linkedin', 
+    'indeed', 
+    'orchestrator', 
+    'pipeline',
+]
+for folder in LOG_FOLDERS:
+    (LOGS_DIR / folder).mkdir(parents=True, exist_ok=True)
+
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY')
@@ -124,3 +135,100 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'linkedin_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'linkedin/scraper.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
+        'indeed_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'indeed/scraper.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
+        'orchestrator_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'orchestrator/orchestrator.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
+        'pipeline_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'pipeline/pipeline.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'LinkedInScraper': {
+            'handlers': ['linkedin_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'IndeedScraper': {
+            'handlers': ['indeed_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'JobScrapingOrchestrator': {
+            'handlers': ['orchestrator_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Log all pipeline components to the same file
+        'JobProcessingPipeline': {
+            'handlers': ['pipeline_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'JobDataCleaner': {
+            'handlers': ['pipeline_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'JobDataNormalizer': {
+            'handlers': ['pipeline_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'JobDuplicateDetector': {
+            'handlers': ['pipeline_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

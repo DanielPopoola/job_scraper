@@ -2,7 +2,9 @@ import logging
 import time
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 from django.utils import timezone
 
@@ -18,6 +20,7 @@ class ScrapingTask:
     """Configuration for a single scraping task"""
     site: str
     search_term: str
+    location: Optional[str] = None
     max_jobs: int = 50
     priority: int = 1
 
@@ -54,29 +57,15 @@ class JobScrapingOrchestrator:
     def __init__(self, config: OrchestrationConfig = None):
         self.config = config or OrchestrationConfig()
         self.logger = logging.getLogger(self.__class__.__name__)
-        
-        self._scrapers: Dict[str, BaseScraper] = {}
         self.pipeline = JobProcessingPipeline()
         
         # Track orchestration state
         self.current_session_id = None
         self.failed_tasks = []
 
-    def get_scraper(self, site: str) -> BaseScraper:
-        """Get or create scraper instance for a site"""
-        if site not in self._scrapers:
-            if site == 'linkedin':
-                self._scrapers[site] = LinkedInScraper()
-            elif site == 'indeed':
-                self._scrapers[site] = IndeedScraper()
-            else:
-                raise ValueError(f"Unsupported site: {site}")
-        
-        return self._scrapers[site]
-
     def run_scraping_session(self, tasks: List[ScrapingTask]) -> Dict[str, Any]:
         """
-        Run a complete scraping session with multiple tasks.
+        Run a complete scraping session with multiple tasks concurrently.
         
         This is the main orchestration method!
         """
@@ -90,44 +79,60 @@ class JobScrapingOrchestrator:
             'tasks_completed': 0,
             'tasks_failed': 0,
             'total_jobs_scraped': 0,
+            'total_jobs_existing': 0, # new
             'total_jobs_processed': 0,
             'errors': [],
             'site_stats': {}
         }
         
         try:
-            for i, task in enumerate(sorted_tasks):
-                self.logger.info(f"Task {i+1}/{len(tasks)}: {task.site} - '{task.search_term}'")
+            with ThreadPoolExecutor() as executor:
+                future_to_task = {executor.submit(self._execute_single_task, task): task for task in sorted_tasks}
 
-                task_result = self._execute_single_task(task)
+                for future in as_completed(future_to_task):
+                    task = future_to_task[future]
+                    try:
+                        task_result = future.result()
 
-                if task_result['success']:
-                    results['tasks_completed'] += 1
-                    results['total_jobs_scraped'] += task_result['jobs_scraped']
+                        if task_result['success']:
+                            results['tasks_completed'] += 1
+                            results['total_jobs_scraped'] += task_result['jobs_scraped']
+                            results['total_jobs_existing'] += task_result['jobs_existing']
 
-                    # Track per site statistics
-                    site = task.site
-                    if site not in results['site_stats']:
-                        results['site_stats'][site] = {'jobs': 0, 'searches': 0, 'failures': 0}
-                    
-                    results['site_stats'][site]['jobs'] += task_result['jobs_scraped']
-                    results['site_stats'][site]['searches'] += 1
-                else:
-                    results['tasks_failed'] += 1
-                    results['errors'].append({
-                        'task': f"{task.site} - {task.search_term}",
-                        'error': task_result['error']
-                    })
-                    
-                    # Track site failures
-                    site = task.site
-                    if site not in results['site_stats']:
-                        results['site_stats'][site] = {'jobs': 0, 'searches': 0, 'failures': 0}
-                    results['site_stats'][site]['failures'] += 1
+                            # Track per site statistics
+                            site = task.site
+                            if site not in results['site_stats']:
+                                results['site_stats'][site] = {'jobs': 0, 'searches': 0, 'failures': 0, 'existing': 0} # new
+                            
+                            results['site_stats'][site]['jobs'] += task_result['jobs_scraped']
+                            results['site_stats'][site]['existing'] += task_result['jobs_existing'] # new
+                            results['site_stats'][site]['searches'] += 1
+                        else:
+                            results['tasks_failed'] += 1
+                            results['errors'].append({
+                                'task': f"{task.site} - {task.search_term}",
+                                'error': task_result['error']
+                            })
+                            
+                            # Track site failures
+                            site = task.site
+                            if site not in results['site_stats']:
+                                results['site_stats'][site] = {'jobs': 0, 'searches': 0, 'failures': 0, 'existing': 0} # new
+                            results['site_stats'][site]['failures'] += 1
+                    except Exception as exc:
+                        self.logger.error(f"Task {task.site} - '{task.search_term}' generated an exception: {exc}")
+                        results['tasks_failed'] += 1
+                        results['errors'].append({
+                            'task': f"{task.site} - {task.search_term}",
+                            'error': str(exc)
+                        })
+                        
+                        # Track site failures
+                        site = task.site
+                        if site not in results['site_stats']:
+                            results['site_stats'][site] = {'jobs': 0, 'searches': 0, 'failures': 0, 'existing': 0} # new
+                        results['site_stats'][site]['failures'] += 1
 
-                # Delay between tasks
-                if i < len(sorted_tasks) - 1:  # Don't delay after the last task
-                    self._delay_between_tasks(task, sorted_tasks[i+1])
 
             # Process all scraped data if configured to batch process
             if not self.config.process_immediately:
@@ -143,7 +148,7 @@ class JobScrapingOrchestrator:
         results['session_end'] = time.time()
         results['total_duration'] = results['session_end'] - session_start
         
-        self.logger.info(f"Orchestration session completed in {results['total_duration']}")
+        self.logger.info(f"Orchestration session completed in {results['total_duration']:.2f} seconds")
         self._log_session_summary(results)
         
         return results
@@ -154,6 +159,7 @@ class JobScrapingOrchestrator:
         task_result = {
             'success': False,
             'jobs_scraped': 0,
+            'jobs_existing': 0,
             'error': None,
             'attempts': 0
         }
@@ -162,23 +168,47 @@ class JobScrapingOrchestrator:
             task_result['attempts'] = attempt + 1
 
             try:
-                self.logger.info(f"Attempt {attempt + 1} for {task.site} - {task.search_term}")
+                log_search_term = f"'{task.search_term}'"
+                if task.location:
+                    log_search_term += f" in '{task.location}'"
+                self.logger.info(f"Attempt {attempt + 1} for {task.site} - {log_search_term}")
 
-                # Get the appropriate scraper
-                scraper = self.get_scraper(task.site)
+                # Create a new scraper instance for each task for thread safety
+                if task.site == 'linkedin':
+                    scraper = LinkedInScraper()
+                elif task.site == 'indeed':
+                    scraper = IndeedScraper()
+                else:
+                    raise ValueError(f"Unsupported site: {task.site}")
+
+                # Prepare arguments for scrape_jobs
+                kwargs = {'max_jobs': task.max_jobs}
+                final_search_term = task.search_term
+
+                if task.location:
+                    if isinstance(scraper, IndeedScraper):
+                        kwargs['location'] = task.location
+                    else: # For LinkedIn and others, append location to search term
+                        final_search_term = f"{task.search_term} {task.location}"
+                
+                kwargs['search_term'] = final_search_term
 
                 # Execute scraping
-                scraped_jobs = scraper.scrape_jobs(task.search_term, max_jobs=task.max_jobs)
+                scrape_result = scraper.scrape_jobs(**kwargs)
+                scraped_jobs = scrape_result["scraped_jobs"]
+                jobs_existing = scrape_result["jobs_existing"]
+
 
                 task_result['success'] = True
                 task_result['jobs_scraped'] += len(scraped_jobs)
+                task_result['jobs_existing'] += jobs_existing
 
                 # Process immediately if configured
                 if self.config.process_immediately:
                     processing_stats = self.pipeline.process_pending_jobs()
                     task_result['jobs_processed'] = processing_stats['processed']
 
-                self.logger.info(f"Task completed successfully: {task_result['jobs_scraped']} jobs")
+                self.logger.info(f"Task completed successfully: {task_result['jobs_scraped']} new jobs, {task_result['jobs_existing']} existing jobs.")
                 break
 
             except Exception as e:
@@ -214,20 +244,22 @@ class JobScrapingOrchestrator:
         self.logger.info("=" * 60)
         self.logger.info("ORCHESTRATION SESSION SUMMARY")
         self.logger.info("=" * 60)
-        self.logger.info(f"Duration: {results['total_duration']}")
+        self.logger.info(f"Duration: {results['total_duration']:.2f} seconds")
         self.logger.info(f"Tasks completed: {results['tasks_completed']}")
         self.logger.info(f"Tasks failed: {results['tasks_failed']}")
-        self.logger.info(f"Total jobs scraped: {results['total_jobs_scraped']}")
+        self.logger.info(f"Total new jobs scraped: {results['total_jobs_scraped']}")
+        self.logger.info(f"Total existing jobs found: {results['total_jobs_existing']}") # new
         
         if 'total_jobs_processed' in results:
             self.logger.info(f"Total jobs processed: {results['total_jobs_processed']}")
         
         # Site-by-site breakdown
-        for site, stats in results['site_stats'].items():
-            self.logger.info(f"{site.upper()}: {stats['jobs']} jobs, {stats['searches']} searches, {stats['failures']} failures")
+        if results.get('site_stats'):
+            for site, stats in results['site_stats'].items():
+                self.logger.info(f"{site.upper()}: {stats['jobs']} new jobs, {stats['existing']} existing, {stats['searches']} searches, {stats['failures']} failures") # new
         
         # Errors summary
-        if results['errors']:
+        if results.get('errors'):
             self.logger.info("ERRORS:")
             for error in results['errors']:
                 self.logger.info(f"  {error['task']}: {error['error']}")

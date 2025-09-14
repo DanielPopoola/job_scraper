@@ -20,15 +20,7 @@ class JobDuplicateDetector:
             'location_similarity': 0.3,   # Moderately important
         }
 
-    def setup_logging(self):
-        """Configure logging for this class"""
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        self.logger.setLevel(logging.DEBUG)
+    
     
     def find_best_match(self, new_job: Dict[str, Any], potential_duplicates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """
