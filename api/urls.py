@@ -88,6 +88,18 @@ urlpatterns = [
         views.quick_stats, 
         name='quick-stats'
     ),
+
+    # =============================================================================
+    # Actions & Triggers
+    # =============================================================================
+
+    # Trigger a new scraping orchestration session
+    # POST /api/v1/orchestrate/
+    path(
+        'orchestrate/',
+        views.OrchestrationView.as_view(),
+        name='orchestrate'
+    ),
     
     # =============================================================================
     # Alternative URL Patterns (RESTful variations)

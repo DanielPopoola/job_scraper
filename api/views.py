@@ -2,20 +2,21 @@ from collections import Counter
 from datetime import timedelta
 import logging
 import re
+import threading
 
 from django.db.models import Avg, Count, F, Max
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from scraper.models import Job, JobMapping, RawJobPosting, ScrapingSession
-from scraper.orchestrator import JobScrapingOrchestrator
+from scraper.orchestrator import JobScrapingOrchestrator, ScrapingTask
 
 from .filters import JobFilter, RawJobPostingFilter, ScrapingSessionFilter
 from .pagination import CustomPagination
@@ -24,6 +25,7 @@ from .serializers import (
     JobSerializer,
     JobSummarySerializer,
     LocationStatsSerializer,
+    OrchestrationTaskSerializer,
     RawJobPostingSerializer,
     ScrapingSessionSerializer,
     SystemHealthSerializer,
@@ -254,6 +256,52 @@ class ScrapingSessionListView(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_class = ScrapingSessionFilter
     pagination_class = CustomPagination
+
+class OrchestrationView(APIView):
+    """
+    POST /api/orchestrate/
+
+    Starts a new scraping orchestration session in the background.
+    """
+    serializer_class = OrchestrationTaskSerializer
+
+    @extend_schema(
+        request=OrchestrationTaskSerializer,
+        responses={202: OpenApiTypes.OBJECT}
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        Trigger a new scraping session.
+        """
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+
+        # Create scraping tasks from the validated data
+        tasks = []
+        priority = 1
+        for search in validated_data['searches']:
+            for site in validated_data['sites']:
+                task = ScrapingTask(
+                    site=site,
+                    search_term=search['search_term'],
+                    location=search.get('location'),
+                    max_jobs=validated_data['max_jobs'],
+                    priority=priority
+                )
+                tasks.append(task)
+            priority += 1
+        
+        # Run the orchestration in a background thread
+        orchestrator = JobScrapingOrchestrator()
+        thread = threading.Thread(target=orchestrator.run_scraping_session, args=(tasks,))
+        thread.daemon = True # Allows main process to exit even if thread is running
+        thread.start()
+
+        return Response(
+            {"message": f"Scraping session started for {len(tasks)} tasks in the background."},
+            status=status.HTTP_202_ACCEPTED
+        )
 
 # =============================================================================
 # Market Intelligence / Analytics Views

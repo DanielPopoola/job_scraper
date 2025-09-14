@@ -1,4 +1,3 @@
-
 from django.utils import timezone as django_timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -251,3 +250,17 @@ class SystemHealthSerializer(serializers.Serializer):
     
     # Per-site health (this will be nested data)
     site_health = serializers.DictField()
+
+class OrchestrationSearchSerializer(serializers.Serializer):
+    """Serializer for a single search term with an optional location."""
+    search_term = serializers.CharField(max_length=200)
+    location = serializers.CharField(max_length=200, required=False, allow_blank=True)
+
+class OrchestrationTaskSerializer(serializers.Serializer):
+    """Serializer for triggering an orchestration task."""
+    sites = serializers.ListField(
+        child=serializers.ChoiceField(choices=['linkedin', 'indeed']),
+        allow_empty=False
+    )
+    max_jobs = serializers.IntegerField(min_value=1, max_value=500, default=50)
+    searches = OrchestrationSearchSerializer(many=True, allow_empty=False)
