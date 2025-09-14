@@ -283,9 +283,9 @@ class OrchestrationView(APIView):
         # Automatically inject delays if more than one search term is passed
         if len(validated_data['searches']) > 1:
             # Override defaults with more conservative values for API calls
-            config.delay_between_searches = 15 # seconds
-            config.delay_between_sites = 45 # seconds
-            config.max_concurrent_tasks = 3 # conservative concurrency for API
+            config.delay_between_searches = 15
+            config.delay_between_sites = 45
+            config.max_concurrent_tasks = 3
 
         # Create scraping tasks from the validated data
         tasks = []
@@ -303,9 +303,9 @@ class OrchestrationView(APIView):
             priority += 1
         
         # Run the orchestration in a background thread
-        orchestrator = JobScrapingOrchestrator(config=config) # Pass the config
+        orchestrator = JobScrapingOrchestrator(config=config)
         thread = threading.Thread(target=orchestrator.run_scraping_session, args=(tasks,))
-        thread.daemon = True # Allows main process to exit even if thread is running
+        thread.daemon = True
         thread.start()
 
         return Response(
